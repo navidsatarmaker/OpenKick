@@ -30,6 +30,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout OpenKickAudioProcessor::crea
     juce::StringArray shapeChoices = { "Hard Duck", "Sine Pump", "Exponential Pluck", "Linear Ramp" };
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID{"SHAPE", 1}, "Shape", shapeChoices, 0));
+        
+    juce::StringArray rateChoices = { "1/8 Note", "1/4 Note", "1/2 Note", "1/1 Bar" };
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID{"RATE", 1}, "Rate", rateChoices, 1));
     
     return { params.begin(), params.end() };
 }
@@ -98,6 +102,8 @@ void OpenKickAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlo
 {
     currentPhase = 0.0f;
     smoothGain = 1.0f;
+    for (int i = 0; i < 256; ++i) scopeData[i] = 0.0f;
+    scopeIndex = 0;
 }
 
 void OpenKickAudioProcessor::releaseResources()
@@ -134,6 +140,19 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
+    auto mixParam = parameters.getRawParameterValue("MIX")->load();
+    auto shapeParam = static_cast<int>(parameters.getRawParameterValue("SHAPE")->load());
+    auto rateParam = static_cast<int>(parameters.getRawParameterValue("RATE")->load());
+
+    float rateMultiplier = 1.0f;
+    switch (rateParam)
+    {
+        case 0: rateMultiplier = 2.0f; break;  // 1/8 triggers 2x per quarter
+        case 1: rateMultiplier = 1.0f; break;  // 1/4 Note
+        case 2: rateMultiplier = 0.5f; break;  // 1/2 Note
+        case 3: rateMultiplier = 0.25f; break; // 1/1 Bar
+    }
+
     // Basic ducking logic based on host tempo
     auto* playHead = getPlayHead();
     juce::AudioPlayHead::PositionInfo positionInfo;
@@ -146,8 +165,8 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
             if (positionInfo.getIsPlaying() && positionInfo.getPpqPosition().hasValue())
             {
                 double ppq = *positionInfo.getPpqPosition();
-                // Map PPQ to a 0.0-1.0 phase for a quarter note
-                currentPhase = static_cast<float>(std::fmod(ppq, 1.0));
+                // Map PPQ to a 0.0-1.0 phase adjusted by rate
+                currentPhase = static_cast<float>(std::fmod(ppq * rateMultiplier, 1.0));
             }
             else 
             {
@@ -155,9 +174,6 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
             }
         }
     }
-
-    auto mixParam = parameters.getRawParameterValue("MIX")->load();
-    auto shapeParam = static_cast<int>(parameters.getRawParameterValue("SHAPE")->load());
 
     // Iterate through audio samples
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
@@ -171,18 +187,24 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
         // Smooth gain to prevent clicks
         smoothGain += (actualGain - smoothGain) * 0.1f;
 
+        float outSample = 0.0f;
         for (int channel = 0; channel < totalNumInputChannels; ++channel)
         {
             auto* channelData = buffer.getWritePointer (channel);
             channelData[sample] *= smoothGain;
+            if (channel == 0) outSample = channelData[sample];
         }
 
-        // Advance phase if playing (this is an approximation if we don't recalculate PPQ per sample)
-        // Usually you'd calculate phase increment based on BPM and SampleRate
+        // Write mono mix scope
+        int idx = scopeIndex.load();
+        scopeData[idx] = outSample;
+        scopeIndex.store((idx + 1) % 256);
+
+        // Advance phase if playing (approximation if PPQ isn't fetched per sample)
         if (positionInfo.getIsPlaying() && positionInfo.getBpm().hasValue())
         {
             double bpm = *positionInfo.getBpm();
-            float phaseIncrement = static_cast<float>((bpm / 60.0) / getSampleRate());
+            float phaseIncrement = static_cast<float>(((bpm / 60.0) / getSampleRate()) * rateMultiplier);
             currentPhase = std::fmod(currentPhase + phaseIncrement, 1.0f);
         }
     }

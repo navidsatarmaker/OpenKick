@@ -39,6 +39,9 @@ public:
     // Parameters
     juce::AudioProcessorValueTreeState parameters;
 
+    std::atomic<float> scopeData[256];
+    std::atomic<int> scopeIndex { 0 };
+
 private:
     float currentPhase = 0.0f;
     float smoothGain = 1.0f;
