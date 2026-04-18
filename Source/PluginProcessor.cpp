@@ -27,7 +27,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout OpenKickAudioProcessor::crea
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID{"MIX", 1}, "Mix", 0.0f, 1.0f, 1.0f));
     
-    // Add more parameters for rate and shape later
+    juce::StringArray shapeChoices = { "Hard Duck", "Sine Pump", "Exponential Pluck", "Linear Ramp" };
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID{"SHAPE", 1}, "Shape", shapeChoices, 0));
     
     return { params.begin(), params.end() };
 }
@@ -155,13 +157,13 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     }
 
     auto mixParam = parameters.getRawParameterValue("MIX")->load();
+    auto shapeParam = static_cast<int>(parameters.getRawParameterValue("SHAPE")->load());
 
     // Iterate through audio samples
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
     {
-        // Simple linear ramp from 0 to 1 over the quarter note
-        // In a real plugin, this would read from a custom curve table
-        float targetGain = currentPhase; 
+        // Calculate curve target based on shape index
+        float targetGain = calculateGainCurve(currentPhase, shapeParam); 
         
         // Apply mix
         float actualGain = 1.0f - (mixParam * (1.0f - targetGain));
@@ -183,6 +185,23 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
             float phaseIncrement = static_cast<float>((bpm / 60.0) / getSampleRate());
             currentPhase = std::fmod(currentPhase + phaseIncrement, 1.0f);
         }
+    }
+}
+
+float OpenKickAudioProcessor::calculateGainCurve(float phase, int shapeIndex)
+{
+    phase = juce::jlimit(0.0f, 1.0f, phase);
+    switch (shapeIndex)
+    {
+        case 0: // Hard Duck (Triangle/Square)
+            return phase < 0.15f ? 0.0f : (phase - 0.15f) / 0.85f;
+        case 1: // Sine Pump
+            return 1.0f - std::cos(phase * juce::MathConstants<float>::pi * 0.5f);
+        case 2: // Exponential Pluck
+            return std::pow(phase, 2.0f);
+        case 3: // Linear Ramp
+        default:
+            return phase;
     }
 }
 

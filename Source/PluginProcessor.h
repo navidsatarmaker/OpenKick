@@ -43,6 +43,8 @@ private:
     float currentPhase = 0.0f;
     float smoothGain = 1.0f;
 
+    float calculateGainCurve(float phase, int shapeIndex);
+
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OpenKickAudioProcessor)
