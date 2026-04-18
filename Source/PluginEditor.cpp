@@ -178,7 +178,7 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
         sampleVal = juce::jlimit(0.0f, 1.0f, sampleVal); // Peak clamp pos
         
         float yCenter = startY + h / 2.0f;
-        float heightOffset = sampleVal * (h / 2.5f);
+        float heightOffset = sampleVal * (h / 2.0f); // Make vertically larger
         float x = startX + p;
         
         // Draw symmetric envelope outline
@@ -193,14 +193,14 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
         float sampleVal = audioProcessor.scopeData[phaseIdx].load();
         sampleVal = juce::jlimit(0.0f, 1.0f, sampleVal);
         float yCenter = startY + h / 2.0f;
-        float heightOffset = sampleVal * (h / 2.5f);
+        float heightOffset = sampleVal * (h / 2.0f); // Make vertically larger
         scopePath.lineTo(startX + p, yCenter + heightOffset);
     }
     scopePath.closeSubPath();
     
-    g.setColour(juce::Colour(0xff777777).withAlpha(0.6f));
-    g.strokePath(scopePath, juce::PathStrokeType(1.0f));
-    g.setColour(juce::Colour(0xff555555).withAlpha(0.3f));
+    g.setColour(juce::Colour(0xff999999).withAlpha(0.8f));
+    g.strokePath(scopePath, juce::PathStrokeType(2.5f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    g.setColour(juce::Colour(0xff666666).withAlpha(0.4f));
     g.fillPath(scopePath);
 
     // Render Math Curve (Thick Yellow)
