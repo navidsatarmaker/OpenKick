@@ -64,6 +64,11 @@ OpenKickAudioProcessorEditor::OpenKickAudioProcessorEditor (OpenKickAudioProcess
 
 void OpenKickAudioProcessorEditor::timerCallback()
 {
+    // Fade the phase-folded scope buffer over time
+    for(int i = 0; i < 512; ++i) {
+        float val = audioProcessor.scopeData[i].load();
+        audioProcessor.scopeData[i].store(val * 0.95f);
+    }
     repaint();
 }
 
@@ -145,31 +150,43 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
     float w = scopeBounds.getWidth();
     float h = scopeBounds.getHeight();
 
-    // Render Audio Waveform (Grey) Inside Scope
+    // Render Audio Waveform (Folded Cycle) Inside Scope
     juce::Path scopePath;
-    int scopeSize = audioProcessor.scopeSize;
-    int latestIndex = audioProcessor.scopeIndex.load();
-    int renderSamples = juce::jmin(scopeSize, 44100); 
     
     bool started = false;
     for (int p = 0; p < w; ++p)
     {
-        float ratio = 1.0f - (float)p / w;
-        int historyOffset = (int)(ratio * renderSamples);
-        int readIndex = latestIndex - historyOffset;
-        if (readIndex < 0) readIndex += scopeSize;
+        float ratio = (float)p / w; 
+        int phaseIdx = static_cast<int>(ratio * 511.0f);
         
-        float sampleVal = audioProcessor.scopeData[readIndex];
-        sampleVal = juce::jlimit(-1.0f, 1.0f, sampleVal);
-        float y = startY + h / 2.0f - (sampleVal * (h / 2.5f));
+        float sampleVal = audioProcessor.scopeData[phaseIdx].load();
+        sampleVal = juce::jlimit(0.0f, 1.0f, sampleVal); // Peak clamp pos
+        
+        float yCenter = startY + h / 2.0f;
+        float heightOffset = sampleVal * (h / 2.5f);
         float x = startX + p;
         
-        if (!started) { scopePath.startNewSubPath(x, y); started = true; }
-        else scopePath.lineTo(x, y);
+        // Draw symmetric envelope outline
+        if (!started) { scopePath.startNewSubPath(x, yCenter - heightOffset); started = true; }
+        else scopePath.lineTo(x, yCenter - heightOffset);
     }
     
-    g.setColour(juce::Colour(0xff777777).withAlpha(0.7f));
-    g.strokePath(scopePath, juce::PathStrokeType(1.5f));
+    // Draw mirrored bottom
+    for (int p = w - 1; p >= 0; --p) {
+        float ratio = (float)p / w; 
+        int phaseIdx = static_cast<int>(ratio * 511.0f);
+        float sampleVal = audioProcessor.scopeData[phaseIdx].load();
+        sampleVal = juce::jlimit(0.0f, 1.0f, sampleVal);
+        float yCenter = startY + h / 2.0f;
+        float heightOffset = sampleVal * (h / 2.5f);
+        scopePath.lineTo(startX + p, yCenter + heightOffset);
+    }
+    scopePath.closeSubPath();
+    
+    g.setColour(juce::Colour(0xff777777).withAlpha(0.6f));
+    g.strokePath(scopePath, juce::PathStrokeType(1.0f));
+    g.setColour(juce::Colour(0xff555555).withAlpha(0.3f));
+    g.fillPath(scopePath);
 
     // Render Math Curve (Thick Yellow)
     juce::Path curvePath;
@@ -250,6 +267,12 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
             iconPath.lineTo(bX + (phase * bW), bY + (1.0f - gain) * bH);
         }
         g.strokePath(iconPath, juce::PathStrokeType(2.5f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        
+        if (i == 4) {
+            g.setColour(textGrey.darker(0.3f));
+            g.setFont(juce::Font(10.0f, juce::Font::bold));
+            g.drawText("CUSTOM", shapeBounds[i].translated(0, 26), juce::Justification::centred);
+        }
     }
 }
 
@@ -265,23 +288,25 @@ void OpenKickAudioProcessorEditor::resized()
     int rightX = leftWidth + 10;
     int rightWidth = getWidth() - leftWidth - 20;
 
-    // Top Tabs (Rate & Trigger)
+    // Top Tabs (Rate & Trigger) proportionally scaled
     int tabY = 15;
-    for (int i = 0; i < 4; ++i) rateBounds[i] = juce::Rectangle<int>(rightX + (i * 60), tabY, 55, 30);
+    float rateW = rightWidth * 0.12f;
+    for (int i = 0; i < 4; ++i) rateBounds[i] = juce::Rectangle<int>(rightX + (i * (rateW + 5)), tabY, rateW, 30);
     
-    int trigStartX = rightX + rightWidth - 140;
-    triggerBounds[0] = juce::Rectangle<int>(trigStartX, tabY, 65, 30);
-    triggerBounds[1] = juce::Rectangle<int>(trigStartX + 70, tabY, 70, 30);
+    float trigW = rightWidth * 0.15f;
+    int trigStartX = rightX + rightWidth - (trigW * 2) - 5;
+    triggerBounds[0] = juce::Rectangle<int>(trigStartX, tabY, trigW, 30);
+    triggerBounds[1] = juce::Rectangle<int>(trigStartX + trigW + 5, tabY, trigW, 30);
 
-    // Shape Box Grid (Bottom)
-    int shapeBoxW = 60;
+    // Shape Box Grid dynamically scaled
     int shapeBoxH = 40;
-    int shapeY = getHeight() - shapeBoxH - 15;
+    float shapeBoxW = (rightWidth - 32) / 5.0f;
+    int shapeY = getHeight() - shapeBoxH - 25;
     for (int i = 0; i < 5; ++i) {
         shapeBounds[i] = juce::Rectangle<int>(rightX + (i * (shapeBoxW + 8)), shapeY, shapeBoxW, shapeBoxH);
     }
 
-    // Oscilloscope (Center)
+    // Oscilloscope dynamically scaled
     scopeBounds = juce::Rectangle<int>(rightX, 60, rightWidth, shapeY - 75);
 }
 

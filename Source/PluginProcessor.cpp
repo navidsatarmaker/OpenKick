@@ -114,10 +114,7 @@ void OpenKickAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlo
 {
     currentPhase = 0.0f;
     smoothGain = 1.0f;
-    for (int i = 0; i < 96000; ++i) scopeData[i] = 0.0f;
-    scopeSize = static_cast<int>(sampleRate);
-    if (scopeSize > 96000 || scopeSize < 1) scopeSize = 44100;
-    scopeIndex = 0;
+    for (int i = 0; i < 512; ++i) scopeData[i].store(0.0f);
     
     // Default custom curve to a linear ramp
     for (int i = 0; i < 100; ++i) customCurveTable[i] = i / 99.0f;
@@ -244,17 +241,23 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
         smoothGain += (actualGain - smoothGain) * 0.1f;
 
         float outSample = 0.0f;
+        // Apply Gain to all channels
         for (int channel = 0; channel < totalNumInputChannels; ++channel)
         {
-            auto* channelData = buffer.getWritePointer (channel);
+            auto* channelData = buffer.getWritePointer(channel);
             channelData[sample] *= smoothGain;
-            if (channel == 0) outSample = channelData[sample];
+            if (channel == 0) outSample = channelData[sample]; // Capture CH 0 for scope
         }
 
-        // Write mono mix scope
-        int idx = scopeIndex.load();
-        scopeData[idx] = outSample;
-        scopeIndex.store((idx + 1) % scopeSize);
+        // Waveform Visualizer - Phase Folded Peak Tracker
+        int phaseIdx = static_cast<int>(currentPhase * 511.0f);
+        if (phaseIdx >= 0 && phaseIdx < 512) {
+            float absSample = std::abs(outSample);
+            float currentPeak = scopeData[phaseIdx].load();
+            if (absSample > currentPeak) {
+                scopeData[phaseIdx].store(absSample);
+            }
+        }
 
         // Advance host sync phase inter-sample (only if in host sync mode)
         if (triggerMode == 0 && positionInfo.getIsPlaying())
