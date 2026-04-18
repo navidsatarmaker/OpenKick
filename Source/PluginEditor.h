@@ -39,20 +39,11 @@ private:
     juce::Slider mixSlider;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> mixAttachment;
 
-    juce::ComboBox shapeCombo;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> shapeAttachment;
-
-    juce::ComboBox rateCombo;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> rateAttachment;
-
-    juce::ComboBox triggerCombo;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> triggerAttachment;
-
-    juce::ComboBox themeCombo;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> themeAttachment;
-
-    juce::Slider thresholdSlider;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> thresholdAttachment;
-
+    juce::Rectangle<int> rateBounds[4];
+    juce::Rectangle<int> triggerBounds[2];
+    juce::Rectangle<int> shapeBounds[5];
+    juce::Rectangle<int> scopeBounds;
+    juce::Rectangle<int> thresholdBounds;
+    
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OpenKickAudioProcessorEditor)
 };
