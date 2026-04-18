@@ -240,10 +240,12 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
         // Apply mix
         float actualGain = 1.0f - (mixParam * (1.0f - targetGain));
         
-        // Smooth gain to prevent clicks (Dynamic Slew Limiter)
+        // Smooth gain to prevent clicks (True Linear Slew Limiting)
         float smoothParam = *parameters.getRawParameterValue("SMOOTHNESS");
-        float slewCoeff = std::pow(10.0f, -2.5f * smoothParam); 
-        smoothGain += (actualGain - smoothGain) * slewCoeff;
+        float maxDelta = std::pow(10.0f, -1.0f - (4.0f * smoothParam)); 
+        
+        float diff = actualGain - smoothGain;
+        smoothGain += juce::jlimit(-maxDelta, maxDelta, diff);
 
         float outSample = 0.0f;
         // Apply Gain to all channels

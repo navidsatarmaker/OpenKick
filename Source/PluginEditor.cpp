@@ -77,7 +77,7 @@ void OpenKickAudioProcessorEditor::timerCallback()
     // Fade the phase-folded scope buffer over time
     for(int i = 0; i < 512; ++i) {
         float val = audioProcessor.scopeData[i].load();
-        audioProcessor.scopeData[i].store(val * 0.95f);
+        audioProcessor.scopeData[i].store(val * 0.985f);
     }
     repaint();
 }
