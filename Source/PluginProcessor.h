@@ -48,6 +48,9 @@ private:
 
     float calculateGainCurve(float phase, int shapeIndex);
 
+    float envelopeFollower = 0.0f;
+    bool isTriggered = false;
+
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OpenKickAudioProcessor)

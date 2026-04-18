@@ -4,7 +4,7 @@
 OpenKickAudioProcessorEditor::OpenKickAudioProcessorEditor (OpenKickAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p)
 {
-    setSize (400, 300);
+    setSize (450, 350);
 
     mixSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
     mixSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 50, 20);
@@ -19,6 +19,14 @@ OpenKickAudioProcessorEditor::OpenKickAudioProcessorEditor (OpenKickAudioProcess
     rateCombo.setSelectedId(2);
     addAndMakeVisible(rateCombo);
 
+    triggerCombo.addItemList({"Host Sync", "Audio Sidechain"}, 1);
+    triggerCombo.setSelectedId(1);
+    addAndMakeVisible(triggerCombo);
+
+    thresholdSlider.setSliderStyle(juce::Slider::LinearHorizontal);
+    thresholdSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 50, 20);
+    addAndMakeVisible(thresholdSlider);
+
     mixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.parameters, "MIX", mixSlider);
         
@@ -27,6 +35,12 @@ OpenKickAudioProcessorEditor::OpenKickAudioProcessorEditor (OpenKickAudioProcess
 
     rateAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
         audioProcessor.parameters, "RATE", rateCombo);
+
+    triggerAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
+        audioProcessor.parameters, "TRIGGER", triggerCombo);
+
+    thresholdAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+        audioProcessor.parameters, "THRESHOLD", thresholdSlider);
 
     startTimerHz(60);
 }
@@ -110,7 +124,9 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
 
 void OpenKickAudioProcessorEditor::resized()
 {
-    mixSlider.setBounds(getWidth() / 2 - 50, getHeight() - 100, 100, 100);
-    shapeCombo.setBounds(getWidth() / 2 - 155, getHeight() - 130, 150, 24);
-    rateCombo.setBounds(getWidth() / 2 + 5, getHeight() - 130, 150, 24);
+    mixSlider.setBounds(getWidth() / 2 - 50, getHeight() - 170, 100, 100);
+    triggerCombo.setBounds(getWidth() / 2 - 155, getHeight() - 90, 150, 24);
+    thresholdSlider.setBounds(getWidth() / 2 + 5, getHeight() - 90, 150, 24);
+    shapeCombo.setBounds(getWidth() / 2 - 155, getHeight() - 50, 150, 24);
+    rateCombo.setBounds(getWidth() / 2 + 5, getHeight() - 50, 150, 24);
 }

@@ -8,6 +8,7 @@ OpenKickAudioProcessor::OpenKickAudioProcessor()
                       #if ! JucePlugin_IsSynth
                        .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
                       #endif
+                       .withInput  ("Sidechain", juce::AudioChannelSet::stereo(), false)
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
                        ),
@@ -34,6 +35,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout OpenKickAudioProcessor::crea
     juce::StringArray rateChoices = { "1/8 Note", "1/4 Note", "1/2 Note", "1/1 Bar" };
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID{"RATE", 1}, "Rate", rateChoices, 1));
+        
+    juce::StringArray triggerChoices = { "Host Sync", "Audio Sidechain" };
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID{"TRIGGER", 1}, "Trigger", triggerChoices, 0));
+        
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID{"THRESHOLD", 1}, "Threshold", -60.0f, 0.0f, -20.0f));
     
     return { params.begin(), params.end() };
 }
@@ -143,6 +151,8 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     auto mixParam = parameters.getRawParameterValue("MIX")->load();
     auto shapeParam = static_cast<int>(parameters.getRawParameterValue("SHAPE")->load());
     auto rateParam = static_cast<int>(parameters.getRawParameterValue("RATE")->load());
+    auto triggerMode = static_cast<int>(parameters.getRawParameterValue("TRIGGER")->load());
+    float thresholdLinear = juce::Decibels::decibelsToGain(parameters.getRawParameterValue("THRESHOLD")->load());
 
     float rateMultiplier = 1.0f;
     switch (rateParam)
@@ -156,19 +166,22 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     // Basic ducking logic based on host tempo
     auto* playHead = getPlayHead();
     juce::AudioPlayHead::PositionInfo positionInfo;
+    double bpm = 120.0;
     
     if (playHead != nullptr)
     {
         if (auto pos = playHead->getPosition())
         {
             positionInfo = *pos;
-            if (positionInfo.getIsPlaying() && positionInfo.getPpqPosition().hasValue())
+            if (positionInfo.getBpm().hasValue()) bpm = *positionInfo.getBpm();
+            
+            if (triggerMode == 0 && positionInfo.getIsPlaying() && positionInfo.getPpqPosition().hasValue())
             {
                 double ppq = *positionInfo.getPpqPosition();
                 // Map PPQ to a 0.0-1.0 phase adjusted by rate
                 currentPhase = static_cast<float>(std::fmod(ppq * rateMultiplier, 1.0));
             }
-            else 
+            else if (triggerMode == 0 && !positionInfo.getIsPlaying())
             {
                 currentPhase = 0.0f; // Not playing
             }
@@ -178,6 +191,35 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     // Iterate through audio samples
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
     {
+        // Handle audio sidechain triggering
+        if (triggerMode == 1)
+        {
+            float scSample = 0.0f;
+            if (getBusCount(true) > 1) {
+                auto scBus = getBusBuffer(buffer, true, 1);
+                for (int ch = 0; ch < scBus.getNumChannels(); ++ch)
+                    scSample = juce::jmax(scSample, std::abs(scBus.getReadPointer(ch)[sample]));
+            }
+            
+            if (scSample > envelopeFollower) envelopeFollower += (scSample - envelopeFollower) * 0.1f;
+            else envelopeFollower += (scSample - envelopeFollower) * 0.005f;
+
+            if (!isTriggered && envelopeFollower > thresholdLinear) {
+                isTriggered = true;
+                currentPhase = 0.0f;
+            }
+            
+            if (isTriggered) {
+                float phaseIncrement = static_cast<float>(((bpm / 60.0) / getSampleRate()) * rateMultiplier);
+                currentPhase += phaseIncrement;
+                if (currentPhase >= 1.0f) {
+                    currentPhase = 1.0f;
+                    if (envelopeFollower < thresholdLinear * 0.8f) isTriggered = false;
+                }
+            } else {
+                currentPhase = 1.0f;
+            }
+        }
         // Calculate curve target based on shape index
         float targetGain = calculateGainCurve(currentPhase, shapeParam); 
         
@@ -200,10 +242,9 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
         scopeData[idx] = outSample;
         scopeIndex.store((idx + 1) % 256);
 
-        // Advance phase if playing (approximation if PPQ isn't fetched per sample)
-        if (positionInfo.getIsPlaying() && positionInfo.getBpm().hasValue())
+        // Advance host sync phase inter-sample (only if in host sync mode)
+        if (triggerMode == 0 && positionInfo.getIsPlaying())
         {
-            double bpm = *positionInfo.getBpm();
             float phaseIncrement = static_cast<float>(((bpm / 60.0) / getSampleRate()) * rateMultiplier);
             currentPhase = std::fmod(currentPhase + phaseIncrement, 1.0f);
         }
