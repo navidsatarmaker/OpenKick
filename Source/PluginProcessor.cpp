@@ -42,6 +42,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout OpenKickAudioProcessor::crea
         
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID{"THRESHOLD", 1}, "Threshold", -60.0f, 0.0f, -20.0f));
+
+    juce::StringArray themeChoices = { "Cyan & Dark Blue", "Orange & Dark Grey" };
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID{"THEME", 1}, "Theme", themeChoices, 0));
     
     return { params.begin(), params.end() };
 }
@@ -110,7 +114,9 @@ void OpenKickAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlo
 {
     currentPhase = 0.0f;
     smoothGain = 1.0f;
-    for (int i = 0; i < 256; ++i) scopeData[i] = 0.0f;
+    for (int i = 0; i < 96000; ++i) scopeData[i] = 0.0f;
+    scopeSize = static_cast<int>(sampleRate);
+    if (scopeSize > 96000 || scopeSize < 1) scopeSize = 44100;
     scopeIndex = 0;
     
     // Default custom curve to a linear ramp
@@ -204,10 +210,15 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
                     scSample = juce::jmax(scSample, std::abs(scBus.getReadPointer(ch)[sample]));
             }
             
+            bool wasAboveThreshold = (envelopeFollower > thresholdLinear);
+
             if (scSample > envelopeFollower) envelopeFollower += (scSample - envelopeFollower) * 0.1f;
             else envelopeFollower += (scSample - envelopeFollower) * 0.005f;
 
-            if (!isTriggered && envelopeFollower > thresholdLinear) {
+            bool isAboveThreshold = (envelopeFollower > thresholdLinear);
+
+            // True Audio Retrigger Logic (Retriggers instantly on new transient)
+            if (!wasAboveThreshold && isAboveThreshold) {
                 isTriggered = true;
                 currentPhase = 0.0f;
             }
@@ -217,7 +228,7 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
                 currentPhase += phaseIncrement;
                 if (currentPhase >= 1.0f) {
                     currentPhase = 1.0f;
-                    if (envelopeFollower < thresholdLinear * 0.8f) isTriggered = false;
+                    if (!isAboveThreshold) isTriggered = false;
                 }
             } else {
                 currentPhase = 1.0f;
@@ -243,7 +254,7 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
         // Write mono mix scope
         int idx = scopeIndex.load();
         scopeData[idx] = outSample;
-        scopeIndex.store((idx + 1) % 256);
+        scopeIndex.store((idx + 1) % scopeSize);
 
         // Advance host sync phase inter-sample (only if in host sync mode)
         if (triggerMode == 0 && positionInfo.getIsPlaying())

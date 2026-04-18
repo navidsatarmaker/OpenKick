@@ -39,8 +39,9 @@ public:
     // Parameters
     juce::AudioProcessorValueTreeState parameters;
 
-    std::atomic<float> scopeData[256];
+    float scopeData[96000];
     std::atomic<int> scopeIndex { 0 };
+    int scopeSize = 44100;
     std::atomic<float> customCurveTable[100];
 
 private:
