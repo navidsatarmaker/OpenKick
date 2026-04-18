@@ -7,7 +7,7 @@ include(FetchContent)
 FetchContent_Declare(
     juce
     GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
-    GIT_TAG        8.0.0
+    GIT_TAG        master
 )
 FetchContent_MakeAvailable(juce)
 
@@ -29,6 +29,8 @@ target_sources(OpenKick
     PRIVATE
         Source/PluginProcessor.cpp
         Source/PluginEditor.cpp)
+
+juce_generate_juce_header(OpenKick)
 
 # Definitions
 target_compile_definitions(OpenKick
