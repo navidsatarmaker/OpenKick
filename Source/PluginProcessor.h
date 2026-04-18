@@ -41,6 +41,7 @@ public:
 
     std::atomic<float> scopeData[256];
     std::atomic<int> scopeIndex { 0 };
+    std::atomic<float> customCurveTable[100];
 
 private:
     float currentPhase = 0.0f;

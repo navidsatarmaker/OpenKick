@@ -28,7 +28,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout OpenKickAudioProcessor::crea
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID{"MIX", 1}, "Mix", 0.0f, 1.0f, 1.0f));
     
-    juce::StringArray shapeChoices = { "Hard Duck", "Sine Pump", "Exponential Pluck", "Linear Ramp" };
+    juce::StringArray shapeChoices = { "Hard Duck", "Sine Pump", "Exponential Pluck", "Linear Ramp", "Custom" };
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID{"SHAPE", 1}, "Shape", shapeChoices, 0));
         
@@ -112,6 +112,9 @@ void OpenKickAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlo
     smoothGain = 1.0f;
     for (int i = 0; i < 256; ++i) scopeData[i] = 0.0f;
     scopeIndex = 0;
+    
+    // Default custom curve to a linear ramp
+    for (int i = 0; i < 100; ++i) customCurveTable[i] = i / 99.0f;
 }
 
 void OpenKickAudioProcessor::releaseResources()
@@ -262,6 +265,11 @@ float OpenKickAudioProcessor::calculateGainCurve(float phase, int shapeIndex)
             return 1.0f - std::cos(phase * juce::MathConstants<float>::pi * 0.5f);
         case 2: // Exponential Pluck
             return std::pow(phase, 2.0f);
+        case 4: // Custom User Shape
+        {
+            int index = juce::jlimit(0, 99, (int)(phase * 100.0f));
+            return customCurveTable[index].load();
+        }
         case 3: // Linear Ramp
         default:
             return phase;

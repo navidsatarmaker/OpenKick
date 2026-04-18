@@ -42,6 +42,12 @@ OpenKickAudioProcessorEditor::OpenKickAudioProcessorEditor (OpenKickAudioProcess
     thresholdAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.parameters, "THRESHOLD", thresholdSlider);
 
+    customNodes.push_back({0.0f, 0.0f});
+    customNodes.push_back({0.15f, 0.0f});
+    customNodes.push_back({0.5f, 1.0f});
+    customNodes.push_back({1.0f, 1.0f});
+    updateCustomCurve();
+
     startTimerHz(60);
 }
 
@@ -111,6 +117,7 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
             case 0: gain = phase < 0.15f ? 0.0f : (phase - 0.15f) / 0.85f; break;
             case 1: gain = 1.0f - std::cos(phase * juce::MathConstants<float>::pi * 0.5f); break;
             case 2: gain = std::pow(phase, 2.0f); break;
+            case 4: gain = audioProcessor.customCurveTable[i].load(); break;
             case 3: default: gain = phase; break;
         }
         
@@ -120,6 +127,18 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
         curvePath.lineTo(x, y);
     }
     g.strokePath(curvePath, juce::PathStrokeType(3.0f, juce::PathStrokeType::curved));
+
+    // Draw handles if custom shape is selected
+    if (shapeIndex == 4)
+    {
+        g.setColour(juce::Colours::yellow);
+        for (auto& node : customNodes)
+        {
+            float nx = startX + (node.x * w);
+            float ny = startY + (1.0f - node.y) * h;
+            g.fillEllipse(nx - 5.0f, ny - 5.0f, 10.0f, 10.0f);
+        }
+    }
 }
 
 void OpenKickAudioProcessorEditor::resized()
@@ -129,4 +148,88 @@ void OpenKickAudioProcessorEditor::resized()
     thresholdSlider.setBounds(getWidth() / 2 + 5, getHeight() - 90, 150, 24);
     shapeCombo.setBounds(getWidth() / 2 - 155, getHeight() - 50, 150, 24);
     rateCombo.setBounds(getWidth() / 2 + 5, getHeight() - 50, 150, 24);
+}
+
+void OpenKickAudioProcessorEditor::updateCustomCurve()
+{
+    for (int i = 0; i < 100; ++i)
+    {
+        float x = i / 99.0f;
+        float y = 0.0f;
+        for (size_t n = 0; n < customNodes.size() - 1; ++n)
+        {
+            if (x >= customNodes[n].x && x <= customNodes[n+1].x)
+            {
+                float rangeX = customNodes[n+1].x - customNodes[n].x;
+                if (rangeX > 0.0f) {
+                    float t = (x - customNodes[n].x) / rangeX;
+                    y = customNodes[n].y + t * (customNodes[n+1].y - customNodes[n].y);
+                } else {
+                    y = customNodes[n].y;
+                }
+                break;
+            }
+        }
+        audioProcessor.customCurveTable[i].store(y);
+    }
+}
+
+void OpenKickAudioProcessorEditor::mouseDown(const juce::MouseEvent& event)
+{
+    if (shapeCombo.getSelectedId() != 5) return; // Only for custom shape
+    
+    auto pos = event.getPosition();
+    curveArea = getLocalBounds().withSizeKeepingCentre(300, 150).translated(0, -30);
+    
+    float w = curveArea.getWidth();
+    float h = curveArea.getHeight();
+    float startX = curveArea.getX();
+    float startY = curveArea.getY();
+
+    for (size_t i = 0; i < customNodes.size(); ++i)
+    {
+        float nx = startX + (customNodes[i].x * w);
+        float ny = startY + (1.0f - customNodes[i].y) * h;
+        if (juce::Point<float>(nx, ny).getDistanceFrom(pos.toFloat()) < 15.0f)
+        {
+            draggedNode = i;
+            break;
+        }
+    }
+}
+
+void OpenKickAudioProcessorEditor::mouseDrag(const juce::MouseEvent& event)
+{
+    if (draggedNode == -1) return;
+
+    auto pos = event.getPosition();
+    float w = curveArea.getWidth();
+    float h = curveArea.getHeight();
+    float startX = curveArea.getX();
+    float startY = curveArea.getY();
+
+    float targetX = (pos.x - startX) / w;
+    float targetY = 1.0f - ((pos.y - startY) / h);
+
+    // Keep within bounds
+    targetX = juce::jlimit(0.0f, 1.0f, targetX);
+    targetY = juce::jlimit(0.0f, 1.0f, targetY);
+
+    // X axis boundary locking to keep sequence continuous
+    if (draggedNode == 0) targetX = 0.0f;
+    else if (draggedNode == customNodes.size() - 1) targetX = 1.0f;
+    else {
+        targetX = juce::jlimit(customNodes[draggedNode - 1].x + 0.01f, customNodes[draggedNode + 1].x - 0.01f, targetX);
+    }
+
+    customNodes[draggedNode].x = targetX;
+    customNodes[draggedNode].y = targetY;
+
+    updateCustomCurve();
+    repaint();
+}
+
+void OpenKickAudioProcessorEditor::mouseUp(const juce::MouseEvent& event)
+{
+    draggedNode = -1;
 }
