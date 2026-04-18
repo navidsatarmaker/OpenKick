@@ -53,6 +53,16 @@ OpenKickAudioProcessorEditor::OpenKickAudioProcessorEditor (OpenKickAudioProcess
     mixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.parameters, "MIX", mixSlider);
 
+    smoothSlider.setSliderStyle(juce::Slider::LinearHorizontal);
+    smoothSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    smoothSlider.setColour(juce::Slider::trackColourId, juce::Colour(0xff2a2a2a));
+    smoothSlider.setColour(juce::Slider::backgroundColourId, juce::Colour(0xff111111));
+    smoothSlider.setColour(juce::Slider::thumbColourId, juce::Colour(0xfffcee0a));
+    addAndMakeVisible(smoothSlider);
+
+    smoothAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+        audioProcessor.parameters, "SMOOTHNESS", smoothSlider);
+
     customNodes.push_back({0.0f, 0.0f});
     customNodes.push_back({0.15f, 0.0f});
     customNodes.push_back({0.5f, 1.0f});
@@ -102,7 +112,12 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
     // Current Mix readout
     g.setColour(juce::Colours::white);
     g.setFont(juce::Font(24.0f, juce::Font::bold));
-    g.drawText("MIX " + juce::String(currentMix) + "%", 0, getHeight() - 70, getWidth() * 0.35f, 40, juce::Justification::centred);
+    g.drawText("MIX " + juce::String(currentMix) + "%", 0, getHeight() - 75, getWidth() * 0.35f, 40, juce::Justification::centred);
+
+    // Smoothness Label
+    g.setColour(textGrey);
+    g.setFont(juce::Font(12.0f, juce::Font::bold));
+    g.drawText("SMOOTHNESS", 0, getHeight() - 35, getWidth() * 0.35f, 20, juce::Justification::centred);
 
     // Right Panel Background
     juce::Rectangle<int> rightPanel(getWidth() * 0.35f, 0, getWidth() * 0.65f, getHeight());
@@ -283,6 +298,9 @@ void OpenKickAudioProcessorEditor::resized()
     
     // Mix dial dead center of left panel
     mixSlider.setBounds(leftWidth / 2 - 120, getHeight() / 2 - 120, 240, 240);
+
+    // Smoothness Slider
+    smoothSlider.setBounds(leftWidth / 2 - 60, getHeight() - 20, 120, 12);
 
     // Right Panel Areas
     int rightX = leftWidth + 10;

@@ -43,6 +43,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout OpenKickAudioProcessor::crea
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID{"THRESHOLD", 1}, "Threshold", -60.0f, 0.0f, -20.0f));
 
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID{"SMOOTHNESS", 1}, "Smoothness", 0.0f, 1.0f, 0.3f));
+
     juce::StringArray themeChoices = { "Cyan & Dark Blue", "Orange & Dark Grey" };
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID{"THEME", 1}, "Theme", themeChoices, 0));
@@ -237,8 +240,10 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
         // Apply mix
         float actualGain = 1.0f - (mixParam * (1.0f - targetGain));
         
-        // Smooth gain to prevent clicks
-        smoothGain += (actualGain - smoothGain) * 0.1f;
+        // Smooth gain to prevent clicks (Dynamic Slew Limiter)
+        float smoothParam = *parameters.getRawParameterValue("SMOOTHNESS");
+        float slewCoeff = std::pow(10.0f, -2.5f * smoothParam); 
+        smoothGain += (actualGain - smoothGain) * slewCoeff;
 
         float outSample = 0.0f;
         // Apply Gain to all channels
