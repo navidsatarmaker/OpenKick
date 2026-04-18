@@ -38,6 +38,8 @@ OpenKickAudioProcessorEditor::OpenKickAudioProcessorEditor (OpenKickAudioProcess
     : AudioProcessorEditor (&p), audioProcessor (p)
 {
     setSize (450, 350);
+    setResizable (true, true);
+    setResizeLimits (400, 300, 900, 700);
     
     setLookAndFeel(&customLookAndFeel);
 
@@ -122,7 +124,9 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
 
     // Draw Curve Viewer box
     g.setColour(juce::Colours::black.withAlpha(0.6f));
-    auto curveArea = getLocalBounds().withSizeKeepingCentre(300, 150).translated(0, -30);
+    float targetWidth = getWidth() * 0.75f;
+    float targetHeight = getHeight() * 0.45f;
+    auto curveArea = getLocalBounds().withSizeKeepingCentre(targetWidth, targetHeight).translated(0, -(getHeight() * 0.08f));
     g.fillRoundedRectangle(curveArea.toFloat(), 8.0f);
     g.setColour(primaryColour.darker(0.4f));
     g.drawRoundedRectangle(curveArea.toFloat(), 8.0f, 2.0f);
@@ -211,12 +215,13 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
 
 void OpenKickAudioProcessorEditor::resized()
 {
-    mixSlider.setBounds(getWidth() / 2 - 50, getHeight() - 170, 100, 100);
-    triggerCombo.setBounds(getWidth() / 2 - 155, getHeight() - 90, 150, 24);
-    thresholdSlider.setBounds(getWidth() / 2 + 5, getHeight() - 90, 150, 24);
-    shapeCombo.setBounds(getWidth() / 2 - 155, getHeight() - 50, 150, 24);
-    rateCombo.setBounds(getWidth() / 2 + 5, getHeight() - 50, 70, 24);
-    themeCombo.setBounds(getWidth() / 2 + 85, getHeight() - 50, 70, 24);
+    int baseBottom = getHeight() - 95;
+    mixSlider.setBounds(getWidth() / 2 - 50, baseBottom - 75, 100, 100);
+    triggerCombo.setBounds(getWidth() / 2 - 155, baseBottom, 150, 24);
+    thresholdSlider.setBounds(getWidth() / 2 + 5, baseBottom, 150, 24);
+    shapeCombo.setBounds(getWidth() / 2 - 155, baseBottom + 40, 150, 24);
+    rateCombo.setBounds(getWidth() / 2 + 5, baseBottom + 40, 70, 24);
+    themeCombo.setBounds(getWidth() / 2 + 85, baseBottom + 40, 70, 24);
 }
 
 void OpenKickAudioProcessorEditor::updateCustomCurve()
@@ -248,7 +253,9 @@ void OpenKickAudioProcessorEditor::mouseDown(const juce::MouseEvent& event)
     if (shapeCombo.getSelectedId() != 5) return; // Only for custom shape
     
     auto pos = event.getPosition();
-    curveArea = getLocalBounds().withSizeKeepingCentre(300, 150).translated(0, -30);
+    float targetWidth = getWidth() * 0.75f;
+    float targetHeight = getHeight() * 0.45f;
+    curveArea = getLocalBounds().withSizeKeepingCentre(targetWidth, targetHeight).translated(0, -(getHeight() * 0.08f));
     
     float w = curveArea.getWidth();
     float h = curveArea.getHeight();
