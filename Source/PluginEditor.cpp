@@ -10,7 +10,7 @@ OpenKickAudioProcessorEditor::OpenKickAudioProcessorEditor (OpenKickAudioProcess
     mixSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 50, 20);
     addAndMakeVisible(mixSlider);
 
-    shapeCombo.addItemList({"Hard Duck", "Sine Pump", "Exponential Pluck", "Linear Ramp"}, 1);
+    shapeCombo.addItemList({"Hard Duck", "Sine Pump", "Exponential Pluck", "Linear Ramp", "Custom"}, 1);
     shapeCombo.setSelectedId(1);
     addAndMakeVisible(shapeCombo);
     shapeCombo.onChange = [this] { repaint(); };
