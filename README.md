@@ -62,7 +62,14 @@ Want to see OpenKick in action or download the pre-compiled VST3 versions direct
 
 ---
 
-## ⚖️ License & Open Source
-OpenKick is built purely as an educational, non-profit resource for the music production community. It is fundamentally aimed at reducing the barrier to entry for high-quality audio DSP mixing utilities.
+## 💖 Support the Developer
+OpenKick is built purely as an educational, non-profit resource for the music production community. It relies on the generosity of developers and producers. 
 
+If this plugin saved you $50+ on buying commercial sidechain software, consider supporting the project!
+<br>
+**[☕ Buy Me a Coffee](https://buymeacoffee.com/navidsatarmaker)**
+
+---
+
+## ⚖️ License
 Distributed under the **MIT License**. See `LICENSE` for more information.
