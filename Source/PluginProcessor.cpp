@@ -46,9 +46,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout OpenKickAudioProcessor::crea
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID{"SMOOTHNESS", 1}, "Smoothness", 0.0f, 1.0f, 0.3f));
 
-    juce::StringArray themeChoices = { "Cyan & Dark Blue", "Orange & Dark Grey" };
-    params.push_back(std::make_unique<juce::AudioParameterChoice>(
-        juce::ParameterID{"THEME", 1}, "Theme", themeChoices, 0));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID{"SHIFT", 1}, "Shift", 0.0f, 1.0f, 0.0f));
     
     return { params.begin(), params.end() };
 }
@@ -234,8 +233,13 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
                 currentPhase = 1.0f;
             }
         }
-        // Calculate curve target based on shape index
-        float targetGain = calculateGainCurve(currentPhase, shapeParam); 
+        // Apply Phase Shift Offset
+        float shiftParam = *parameters.getRawParameterValue("SHIFT");
+        float shiftedPhase = std::fmod(currentPhase + shiftParam, 1.0f);
+        if (shiftedPhase < 0.0f) shiftedPhase += 1.0f;
+
+        // Calculate curve target based on shape index and shifted phase
+        float targetGain = calculateGainCurve(shiftedPhase, shapeParam); 
         
         // Apply mix
         float actualGain = 1.0f - (mixParam * (1.0f - targetGain));
@@ -266,10 +270,11 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
             }
         }
 
-        // Advance host sync phase inter-sample (only if in host sync mode)
-        if (triggerMode == 0 && positionInfo.getIsPlaying())
+        // Advance host sync phase inter-sample (Always free-run regardless of DAW playback!)
+        if (triggerMode == 0)
         {
-            float phaseIncrement = static_cast<float>(((bpm / 60.0) / getSampleRate()) * rateMultiplier);
+            float rateParam = (bpm > 0) ? bpm : 120.0f; // Default to 120bpm if Host doesn't send time
+            float phaseIncrement = static_cast<float>(((rateParam / 60.0) / getSampleRate()) * rateMultiplier);
             currentPhase = std::fmod(currentPhase + phaseIncrement, 1.0f);
         }
     }
@@ -280,18 +285,26 @@ float OpenKickAudioProcessor::calculateGainCurve(float phase, int shapeIndex)
     phase = juce::jlimit(0.0f, 1.0f, phase);
     switch (shapeIndex)
     {
-        case 0: // Hard Duck (Triangle/Square)
-            return phase < 0.15f ? 0.0f : (phase - 0.15f) / 0.85f;
-        case 1: // Sine Pump
-            return 1.0f - std::cos(phase * juce::MathConstants<float>::pi * 0.5f);
-        case 2: // Exponential Pluck
-            return std::pow(phase, 2.0f);
-        case 4: // Custom User Shape
+        case 0: return std::min(1.0f, std::pow(phase * 4.0f, 2.0f)); // Fast rise flat
+        case 1: return std::min(1.0f, std::pow(phase * 2.5f, 2.0f)); // Slower rise flat
+        case 2: return phase < 0.15f ? 0.0f : std::min(1.0f, std::pow((phase - 0.15f) * 3.0f, 2.0f)); // Delay flat (Yellow Target)
+        case 3: return phase < 0.3f ? 0.0f : std::min(1.0f, std::pow((phase - 0.3f) * 4.0f, 2.0f)); // Blocky delay
+        case 4: return (1.0f - std::cos(phase * juce::MathConstants<float>::pi)) * 0.5f; // Pure S-curve
+        case 5: return phase < 0.2f ? 1.0f - (phase*5.0f) : (phase > 0.8f ? (phase-0.8f)*5.0f : 0.0f); // U-shape
+        case 6: return phase < 0.8f ? 0.0f : (phase - 0.8f) / 0.2f; // Late exponential
+        case 7: return phase < 0.6f ? 0.0f : std::pow((phase - 0.6f)/0.4f, 3.0f); // Steep spike
+        case 8: return phase < 0.1f ? 0.0f : std::min(1.0f, std::pow((phase - 0.1f) * 2.5f, 2.0f)); // Delay fast peak
+        case 9: return std::min(1.0f, phase * 3.0f); // Linear jump
+        case 10: return phase < 0.2f ? 0.0f : ((phase - 0.2f) / 0.8f); // Late linear
+        case 11: return std::pow(phase, 0.5f); // Convex curve
+        case 12: return 1.0f - phase; // Downward ramp
+        case 13: return std::abs(std::sin(phase * juce::MathConstants<float>::pi * 2.0f)); // Double pump
+        case 14: return std::pow(phase, 4.0f); // Fast late
+        case 15: // Custom User Shape
         {
             int index = juce::jlimit(0, 99, (int)(phase * 100.0f));
             return customCurveTable[index].load();
         }
-        case 3: // Linear Ramp
         default:
             return phase;
     }

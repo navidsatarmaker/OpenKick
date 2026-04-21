@@ -42,9 +42,12 @@ private:
     juce::Slider smoothSlider;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> smoothAttachment;
 
+    juce::Slider shiftSlider;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> shiftAttachment;
+
     juce::Rectangle<int> rateBounds[4];
     juce::Rectangle<int> triggerBounds[2];
-    juce::Rectangle<int> shapeBounds[5];
+    juce::Rectangle<int> shapeBounds[16];
     juce::Rectangle<int> scopeBounds;
     juce::Rectangle<int> thresholdBounds;
     
