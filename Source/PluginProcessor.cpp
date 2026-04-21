@@ -261,14 +261,17 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
             if (channel == 0) outSample = channelData[sample]; // Capture CH 0 for scope
         }
 
-        // Waveform Visualizer - Phase Folded Peak Tracker
-        int phaseIdx = static_cast<int>(currentPhase * 511.0f);
-        if (phaseIdx >= 0 && phaseIdx < 512) {
-            float absSample = std::abs(outSample);
-            float currentPeak = scopeData[phaseIdx].load();
-            if (absSample > currentPeak) {
-                scopeData[phaseIdx].store(absSample);
-            }
+        // Waveform Visualizer - Live Phase Rolling Tracker
+        peakAccumulator = std::max(peakAccumulator, std::abs(outSample));
+        scopeAccumulator++;
+        
+        if (scopeAccumulator >= 32) // approx 1.48s of history at 44.1kHz
+        {
+            int currentWriteIdx = scopeWriteIdx.load();
+            scopeData[currentWriteIdx].store(peakAccumulator);
+            scopeWriteIdx.store((currentWriteIdx + 1) % 2048);
+            peakAccumulator = 0.0f;
+            scopeAccumulator = 0;
         }
 
         // Advance host sync phase inter-sample (Always free-run regardless of DAW playback!)

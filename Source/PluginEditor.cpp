@@ -40,7 +40,7 @@ void OpenKickLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int 
 OpenKickAudioProcessorEditor::OpenKickAudioProcessorEditor (OpenKickAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p)
 {
-    setSize (800, 420);
+    setSize (640, 320);
     setResizable (true, true);
     setResizeLimits (600, 315, 1600, 840);
     
@@ -167,32 +167,38 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
     float w = scopeBounds.getWidth();
     float h = scopeBounds.getHeight();
 
-    // Render Audio Waveform (Folded Cycle) Inside Scope (White, Thick Body)
+    // Render Audio Waveform (Scrolling Ticker-Tape) Inside Scope
     juce::Path scopePath;
-    
+    int currentWriteIdx = audioProcessor.scopeWriteIdx.load();
     bool started = false;
+    
+    // Draw symmetric top envelope outline from left (oldest) to right (newest)
     for (int p = 0; p < w; ++p)
     {
-        float ratio = (float)p / w; 
-        int phaseIdx = static_cast<int>(ratio * 511.0f);
+        int lookback = w - 1 - p;
+        float ratio = (float)lookback / w; // 0.0 at right, 1.0 at left
+        int readIdx = currentWriteIdx - 1 - static_cast<int>(ratio * 2047.0f);
+        while (readIdx < 0) readIdx += 2048;
         
-        float sampleVal = audioProcessor.scopeData[phaseIdx].load();
+        float sampleVal = audioProcessor.scopeData[readIdx].load();
         sampleVal = juce::jlimit(0.0f, 1.0f, sampleVal); // Peak clamp pos
         
         float yCenter = startY + h / 2.0f;
         float heightOffset = sampleVal * (h / 2.0f); // Make vertically larger
         float x = startX + p;
         
-        // Draw symmetric envelope outline
         if (!started) { scopePath.startNewSubPath(x, yCenter - heightOffset); started = true; }
         else scopePath.lineTo(x, yCenter - heightOffset);
     }
     
-    // Draw mirrored bottom
+    // Draw mirrored bottom mapping backward points right to left
     for (int p = w - 1; p >= 0; --p) {
-        float ratio = (float)p / w; 
-        int phaseIdx = static_cast<int>(ratio * 511.0f);
-        float sampleVal = audioProcessor.scopeData[phaseIdx].load();
+        int lookback = w - 1 - p;
+        float ratio = (float)lookback / w; 
+        int readIdx = currentWriteIdx - 1 - static_cast<int>(ratio * 2047.0f);
+        while (readIdx < 0) readIdx += 2048;
+        
+        float sampleVal = audioProcessor.scopeData[readIdx].load();
         sampleVal = juce::jlimit(0.0f, 1.0f, sampleVal);
         float yCenter = startY + h / 2.0f;
         float heightOffset = sampleVal * (h / 2.0f); // Make vertically larger
@@ -296,32 +302,47 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
         float bW = shapeBounds[i].getWidth() - (10.0f * scale);
         float bH = shapeBounds[i].getHeight() - (15.0f * scale);
 
-        iconPath.startNewSubPath(bX, bY + bH);
-        for (int p = 0; p <= 20; ++p)
-        {
-            float phase = p / 20.0f;
-            float gain = phase;
-            switch (i) {
-                case 0: gain = std::min(1.0f, std::pow(phase * 4.0f, 2.0f)); break;
-                case 1: gain = std::min(1.0f, std::pow(phase * 2.5f, 2.0f)); break;
-                case 2: gain = phase < 0.15f ? 0.0f : std::min(1.0f, std::pow((phase - 0.15f) * 3.0f, 2.0f)); break;
-                case 3: gain = phase < 0.3f ? 0.0f : std::min(1.0f, std::pow((phase - 0.3f) * 4.0f, 2.0f)); break;
-                case 4: gain = (1.0f - std::cos(phase * juce::MathConstants<float>::pi)) * 0.5f; break;
-                case 5: gain = phase < 0.2f ? 1.0f - (phase*5.0f) : (phase > 0.8f ? (phase-0.8f)*5.0f : 0.0f); break;
-                case 6: gain = phase < 0.8f ? 0.0f : (phase - 0.8f) / 0.2f; break;
-                case 7: gain = phase < 0.6f ? 0.0f : std::pow((phase - 0.6f)/0.4f, 3.0f); break;
-                case 8: gain = phase < 0.5f ? 0.0f : 1.0f; break; // Custom shape proxy icon
-                case 9: gain = std::min(1.0f, phase * 3.0f); break;
-                case 10: gain = phase < 0.2f ? 0.0f : ((phase - 0.2f) / 0.8f); break;
-                case 11: gain = std::pow(phase, 0.5f); break;
-                case 12: gain = 1.0f - phase; break;
-                case 13: gain = std::abs(std::sin(phase * juce::MathConstants<float>::pi * 2.0f)); break;
-                case 14: gain = std::pow(phase, 4.0f); break;
-                case 15: gain = phase < 0.1f ? 0.0f : std::min(1.0f, std::pow((phase - 0.1f) * 2.5f, 2.0f)); break;
+        if (i == 8) {
+            // Draw Stylized Pencil Vector Icon
+            juce::Path pencil;
+            pencil.startNewSubPath(bX + bW*0.2f, bY + bH*0.8f);
+            pencil.lineTo(bX + bW*0.4f, bY + bH*0.9f);
+            pencil.lineTo(bX + bW*0.9f, bY + bH*0.4f);
+            pencil.lineTo(bX + bW*0.7f, bY + bH*0.2f);
+            pencil.closeSubPath();
+            
+            pencil.startNewSubPath(bX + bW*0.2f, bY + bH*0.8f);
+            pencil.lineTo(bX + bW*0.1f, bY + bH*0.9f); // tip
+            pencil.lineTo(bX + bW*0.4f, bY + bH*0.9f);
+            
+            g.strokePath(pencil, juce::PathStrokeType(1.5f * scale, juce::PathStrokeType::mitered, juce::PathStrokeType::rounded));
+        } else {
+            iconPath.startNewSubPath(bX, bY + bH);
+            for (int p = 0; p <= 20; ++p)
+            {
+                float phase = p / 20.0f;
+                float gain = phase;
+                switch (i) {
+                    case 0: gain = std::min(1.0f, std::pow(phase * 4.0f, 2.0f)); break;
+                    case 1: gain = std::min(1.0f, std::pow(phase * 2.5f, 2.0f)); break;
+                    case 2: gain = phase < 0.15f ? 0.0f : std::min(1.0f, std::pow((phase - 0.15f) * 3.0f, 2.0f)); break;
+                    case 3: gain = phase < 0.3f ? 0.0f : std::min(1.0f, std::pow((phase - 0.3f) * 4.0f, 2.0f)); break;
+                    case 4: gain = (1.0f - std::cos(phase * juce::MathConstants<float>::pi)) * 0.5f; break;
+                    case 5: gain = phase < 0.2f ? 1.0f - (phase*5.0f) : (phase > 0.8f ? (phase-0.8f)*5.0f : 0.0f); break;
+                    case 6: gain = phase < 0.8f ? 0.0f : (phase - 0.8f) / 0.2f; break;
+                    case 7: gain = phase < 0.6f ? 0.0f : std::pow((phase - 0.6f)/0.4f, 3.0f); break;
+                    case 9: gain = std::min(1.0f, phase * 3.0f); break;
+                    case 10: gain = phase < 0.2f ? 0.0f : ((phase - 0.2f) / 0.8f); break;
+                    case 11: gain = std::pow(phase, 0.5f); break;
+                    case 12: gain = 1.0f - phase; break;
+                    case 13: gain = std::abs(std::sin(phase * juce::MathConstants<float>::pi * 2.0f)); break;
+                    case 14: gain = std::pow(phase, 4.0f); break;
+                    case 15: gain = phase < 0.1f ? 0.0f : std::min(1.0f, std::pow((phase - 0.1f) * 2.5f, 2.0f)); break;
+                }
+                iconPath.lineTo(bX + (phase * bW), bY + (1.0f - gain) * bH);
             }
-            iconPath.lineTo(bX + (phase * bW), bY + (1.0f - gain) * bH);
+            g.strokePath(iconPath, juce::PathStrokeType(2.5f * scale, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
         }
-        g.strokePath(iconPath, juce::PathStrokeType(2.5f * scale, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
     }
 }
 

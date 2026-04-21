@@ -31,15 +31,15 @@ public:
     int getCurrentProgram() override;
     void setCurrentProgram (int index) override;
     const juce::String getProgramName (int index) override;
-    void changeProgramName (int index, const juce::String& newName) override;
-
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
-    // Parameters
     juce::AudioProcessorValueTreeState parameters;
-
-    std::atomic<float> scopeData[512];
+    std::atomic<float> scopeData[2048];
+    std::atomic<int> scopeWriteIdx{0};
+    int scopeAccumulator = 0;
+    float peakAccumulator = 0.0f;
+    
     std::atomic<float> customCurveTable[100];
 
     float calculateGainCurve(float phase, int shapeIndex);
