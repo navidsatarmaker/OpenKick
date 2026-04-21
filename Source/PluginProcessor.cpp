@@ -33,9 +33,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout OpenKickAudioProcessor::crea
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID{"SHAPE", 1}, "Shape", shapeChoices, 0));
         
-    juce::StringArray rateChoices = { "1/8 Note", "1/4 Note", "1/2 Note", "1/1 Bar" };
+    juce::StringArray rateChoices = { "1/8 Note", "1/4T", "1/4 Note", "1/2T", "1/2 Note", "1/1 Bar" };
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
-        juce::ParameterID{"RATE", 1}, "Rate", rateChoices, 1));
+        juce::ParameterID{"RATE", 1}, "Rate", rateChoices, 2));
         
     juce::StringArray triggerChoices = { "Host Sync", "Audio Sidechain" };
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
@@ -167,9 +167,11 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     switch (rateParam)
     {
         case 0: rateMultiplier = 2.0f; break;  // 1/8 triggers 2x per quarter
-        case 1: rateMultiplier = 1.0f; break;  // 1/4 Note
-        case 2: rateMultiplier = 0.5f; break;  // 1/2 Note
-        case 3: rateMultiplier = 0.25f; break; // 1/1 Bar
+        case 1: rateMultiplier = 1.5f; break;  // 1/4T (Triplet)
+        case 2: rateMultiplier = 1.0f; break;  // 1/4 Note
+        case 3: rateMultiplier = 0.75f; break; // 1/2T (Triplet)
+        case 4: rateMultiplier = 0.5f; break;  // 1/2 Note
+        case 5: rateMultiplier = 0.25f; break; // 1/1 Bar
     }
 
     // Basic ducking logic based on host tempo

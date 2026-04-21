@@ -45,7 +45,7 @@ private:
     juce::Rectangle<int> shiftLeftBounds;
     juce::Rectangle<int> shiftRightBounds;
 
-    juce::Rectangle<int> rateBounds[4];
+    juce::Rectangle<int> rateBounds[6];
     juce::Rectangle<int> triggerBounds[2];
     juce::Rectangle<int> shapeBounds[16];
     juce::Rectangle<int> scopeBounds;

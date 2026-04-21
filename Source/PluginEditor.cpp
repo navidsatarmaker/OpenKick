@@ -89,6 +89,8 @@ OpenKickAudioProcessorEditor::~OpenKickAudioProcessorEditor()
 
 void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
 {
+    float scale = getWidth() / 800.0f;
+
     // Background Pitch Black/Grey
     g.fillAll(juce::Colour(0xff181818));
 
@@ -103,21 +105,21 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
 
     // Left Panel Titles
     g.setColour(juce::Colours::white);
-    g.setFont(juce::Font(18.0f, juce::Font::italic));
-    g.drawText("OPEN", 0, 20, getWidth() * 0.35f, 30, juce::Justification::centred);
+    g.setFont(juce::Font(18.0f * scale, juce::Font::italic));
+    g.drawText("OPEN", 0, 20 * scale, getWidth() * 0.35f, 30 * scale, juce::Justification::centred);
     g.setColour(yellow);
-    g.setFont(juce::Font(32.0f, juce::Font::bold));
-    g.drawText("KICK", 0, 45, getWidth() * 0.35f, 40, juce::Justification::centred);
+    g.setFont(juce::Font(32.0f * scale, juce::Font::bold));
+    g.drawText("KICK", 0, 45 * scale, getWidth() * 0.35f, 40 * scale, juce::Justification::centred);
 
     // Current Mix readout
     g.setColour(juce::Colours::white);
-    g.setFont(juce::Font(24.0f, juce::Font::bold));
-    g.drawText("MIX " + juce::String(currentMix) + "%", 0, getHeight() - 75, getWidth() * 0.35f, 40, juce::Justification::centred);
+    g.setFont(juce::Font(24.0f * scale, juce::Font::bold));
+    g.drawText("MIX " + juce::String(currentMix) + "%", 0, getHeight() - (110 * scale), getWidth() * 0.35f, 40 * scale, juce::Justification::centred);
 
     // Interaction text lines
     g.setColour(textGrey);
-    g.setFont(juce::Font(12.0f, juce::Font::bold));
-    g.drawText("SMOOTHNESS", 0, getHeight() - 55, getWidth() * 0.35f, 20, juce::Justification::centred);
+    g.setFont(juce::Font(12.0f * scale, juce::Font::bold));
+    g.drawText("SMOOTHNESS", 0, getHeight() - (65 * scale), getWidth() * 0.35f, 20 * scale, juce::Justification::centred);
 
     // Right Panel Background
     juce::Rectangle<int> rightPanel(getWidth() * 0.35f, 0, getWidth() * 0.65f, getHeight());
@@ -125,17 +127,17 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
     g.fillRect(rightPanel);
 
     // Draw Rate Buttons
-    juce::String rateTexts[4] = {"1/8", "1/4", "1/2", "1/1"};
-    for (int i = 0; i < 4; ++i)
+    juce::String rateTexts[6] = {"1/8", "1/4T", "1/4", "1/2T", "1/2", "1/1"};
+    for (int i = 0; i < 6; ++i)
     {
         if (i == currentRate) {
             g.setColour(yellow);
-            g.fillRoundedRectangle(rateBounds[i].toFloat(), 12.0f);
+            g.fillRoundedRectangle(rateBounds[i].toFloat(), 12.0f * scale);
             g.setColour(juce::Colours::black);
         } else {
             g.setColour(textGrey);
         }
-        g.setFont(juce::Font(16.0f, juce::Font::bold));
+        g.setFont(juce::Font(14.0f * scale, juce::Font::bold));
         g.drawText(rateTexts[i], rateBounds[i], juce::Justification::centred);
     }
 
@@ -145,20 +147,20 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
     {
         if (i == currentTrigger) {
             g.setColour(yellow);
-            g.fillRoundedRectangle(triggerBounds[i].toFloat(), 12.0f);
+            g.fillRoundedRectangle(triggerBounds[i].toFloat(), 12.0f * scale);
             g.setColour(juce::Colours::black);
         } else {
             g.setColour(textGrey);
         }
-        g.setFont(juce::Font(16.0f, juce::Font::bold));
+        g.setFont(juce::Font(14.0f * scale, juce::Font::bold));
         g.drawText(triggerTexts[i], triggerBounds[i], juce::Justification::centred);
     }
 
     // Draw Scope Background Box
-    g.setColour(juce::Colours::black);
-    g.fillRoundedRectangle(scopeBounds.toFloat(), 4.0f);
+    g.setColour(panelGrey.darker(0.5f));
+    g.fillRoundedRectangle(scopeBounds.toFloat(), 4.0f * scale);
     g.setColour(juce::Colour(0xff2a2a2a));
-    g.drawRoundedRectangle(scopeBounds.toFloat(), 4.0f, 1.0f);
+    g.drawRoundedRectangle(scopeBounds.toFloat(), 4.0f * scale, 1.0f);
 
     float startX = scopeBounds.getX();
     float startY = scopeBounds.getY();
@@ -201,13 +203,25 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
     g.setColour(juce::Colours::white.withAlpha(0.9f));
     g.fillPath(scopePath);
     g.setColour(juce::Colours::white);
-    g.strokePath(scopePath, juce::PathStrokeType(0.5f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    g.strokePath(scopePath, juce::PathStrokeType(1.0f * scale, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
     
     // Draw Shift Hover Buttons over Scope
     g.setColour(textGrey);
-    g.setFont(juce::Font(24.0f, juce::Font::bold));
-    g.drawText("<", shiftLeftBounds, juce::Justification::centred);
-    g.drawText(">", shiftRightBounds, juce::Justification::centred);
+    juce::Path leftArrow, rightArrow;
+    float lX = shiftLeftBounds.getX(); float lY = shiftLeftBounds.getY();
+    float rX = shiftRightBounds.getX(); float rY = shiftRightBounds.getY();
+    float aW = shiftLeftBounds.getWidth(); float aH = shiftLeftBounds.getHeight();
+    
+    leftArrow.startNewSubPath(lX + aW * 0.7f, lY + aH * 0.2f);
+    leftArrow.lineTo(lX + aW * 0.3f, lY + aH * 0.5f);
+    leftArrow.lineTo(lX + aW * 0.7f, lY + aH * 0.8f);
+    
+    rightArrow.startNewSubPath(rX + aW * 0.3f, rY + aH * 0.2f);
+    rightArrow.lineTo(rX + aW * 0.7f, rY + aH * 0.5f);
+    rightArrow.lineTo(rX + aW * 0.3f, rY + aH * 0.8f);
+    
+    g.strokePath(leftArrow, juce::PathStrokeType(4.0f * scale, juce::PathStrokeType::mitered, juce::PathStrokeType::rounded));
+    g.strokePath(rightArrow, juce::PathStrokeType(4.0f * scale, juce::PathStrokeType::mitered, juce::PathStrokeType::rounded));
 
     // Render Math Curve (Thick Yellow) mapped dynamically to UI Phase Shift
     juce::Path curvePath;
@@ -227,13 +241,13 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
         else curvePath.lineTo(cx, cy);
     }
     g.setColour(yellow);
-    g.strokePath(curvePath, juce::PathStrokeType(5.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    g.strokePath(curvePath, juce::PathStrokeType(5.0f * scale, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
     
     // Draw horizontal fading bottom edge
     juce::Path bottomEdge;
-    bottomEdge.addLineSegment(juce::Line<float>(startX, startY + h, startX + w, startY + h), 2.0f);
+    bottomEdge.addLineSegment(juce::Line<float>(startX, startY + h, startX + w, startY + h), 2.0f * scale);
     g.setColour(yellow.withAlpha(0.6f));
-    g.strokePath(bottomEdge, juce::PathStrokeType(2.0f));
+    g.strokePath(bottomEdge, juce::PathStrokeType(2.0f * scale));
 
     // Handle interactive custom nodes
     if (currentShape == 8) // Index 8 is the Custom User Shape
@@ -259,28 +273,28 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
     for (int i = 0; i < 16; ++i)
     {
         g.setColour(juce::Colour(0xff222222));
-        g.fillRoundedRectangle(shapeBounds[i].toFloat(), 4.0f);
+        g.fillRoundedRectangle(shapeBounds[i].toFloat(), 4.0f * scale);
         
         if (i == currentShape) {
             g.setColour(yellow);
-            g.fillRoundedRectangle(shapeBounds[i].toFloat(), 4.0f);
+            g.fillRoundedRectangle(shapeBounds[i].toFloat(), 4.0f * scale);
         } else {
             g.setColour(juce::Colour(0xff444444));
-            g.drawRoundedRectangle(shapeBounds[i].toFloat(), 4.0f, 1.0f);
+            g.drawRoundedRectangle(shapeBounds[i].toFloat(), 4.0f * scale, 1.0f);
         }
 
         // Draw name inside block
         g.setColour((i == currentShape) ? juce::Colours::black : textGrey.darker(0.3f));
-        g.setFont(juce::Font(8.0f, juce::Font::bold));
-        g.drawText(shapeNames[i], shapeBounds[i].translated(0, 2), juce::Justification::centredTop);
+        g.setFont(juce::Font(7.5f * scale, juce::Font::bold));
+        g.drawText(shapeNames[i], shapeBounds[i].translated(0, 2 * scale), juce::Justification::centredTop);
 
         // Draw miniature curve icon in each block
         g.setColour((i == currentShape) ? juce::Colours::black : textGrey);
         juce::Path iconPath;
-        float bX = shapeBounds[i].getX() + 5.0f;
-        float bY = shapeBounds[i].getY() + 10.0f;
-        float bW = shapeBounds[i].getWidth() - 10.0f;
-        float bH = shapeBounds[i].getHeight() - 15.0f;
+        float bX = shapeBounds[i].getX() + (5.0f * scale);
+        float bY = shapeBounds[i].getY() + (10.0f * scale);
+        float bW = shapeBounds[i].getWidth() - (10.0f * scale);
+        float bH = shapeBounds[i].getHeight() - (15.0f * scale);
 
         iconPath.startNewSubPath(bX, bY + bH);
         for (int p = 0; p <= 20; ++p)
@@ -307,54 +321,56 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
             }
             iconPath.lineTo(bX + (phase * bW), bY + (1.0f - gain) * bH);
         }
-        g.strokePath(iconPath, juce::PathStrokeType(2.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        g.strokePath(iconPath, juce::PathStrokeType(2.5f * scale, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
     }
 }
 
 void OpenKickAudioProcessorEditor::resized()
 {
+    float scale = getWidth() / 800.0f;
     float leftPanelRatio = 0.35f;
     int leftWidth = getWidth() * leftPanelRatio;
     
     // Mix dial dead center of left panel
-    mixSlider.setBounds(leftWidth / 2 - 120, getHeight() / 2 - 120, 240, 240);
+    float mixSize = 240.0f * scale;
+    mixSlider.setBounds(leftWidth / 2 - (mixSize/2), getHeight() / 2 - (mixSize/2), mixSize, mixSize);
 
     // Smoothness Slider
-    smoothSlider.setBounds(leftWidth / 2 - 60, getHeight() - 35, 120, 12);
+    smoothSlider.setBounds(leftWidth / 2 - (60 * scale), getHeight() - (45 * scale), 120 * scale, 12 * scale);
 
     // Right Panel Areas
     int rightX = leftWidth + 10;
     int rightWidth = getWidth() - leftWidth - 20;
 
     // Top Tabs (Rate & Trigger) proportionally scaled
-    int tabY = 15;
-    float rateW = rightWidth * 0.12f;
-    for (int i = 0; i < 4; ++i) rateBounds[i] = juce::Rectangle<int>(rightX + (i * (rateW + 5)), tabY, rateW, 30);
+    int tabY = 15 * scale;
+    float rateW = rightWidth * 0.08f;
+    for (int i = 0; i < 6; ++i) rateBounds[i] = juce::Rectangle<int>(rightX + (i * (rateW + (5*scale))), tabY, rateW, 30 * scale);
     
-    float trigW = rightWidth * 0.15f;
-    int trigStartX = rightX + rightWidth - (trigW * 2) - 5;
-    triggerBounds[0] = juce::Rectangle<int>(trigStartX, tabY, trigW, 30);
-    triggerBounds[1] = juce::Rectangle<int>(trigStartX + trigW + 5, tabY, trigW, 30);
+    float trigW = rightWidth * 0.12f;
+    int trigStartX = rightX + rightWidth - (trigW * 2) - (5*scale);
+    triggerBounds[0] = juce::Rectangle<int>(trigStartX, tabY, trigW, 30 * scale);
+    triggerBounds[1] = juce::Rectangle<int>(trigStartX + trigW + (5*scale), tabY, trigW, 30 * scale);
 
     // Shape Box Grid dynamically scaled 2x8
     int numCols = 8;
     int numRows = 2;
-    int shapeBoxH = 35;
-    float shapeBoxW = (rightWidth - (numCols - 1) * 6) / (float)numCols; // 6px gap
-    int shapeY = getHeight() - (shapeBoxH * 2) - 15;
+    int shapeBoxH = 35 * scale;
+    float shapeBoxW = (rightWidth - (numCols - 1) * (6*scale)) / (float)numCols; // 6px gap
+    int shapeY = getHeight() - (shapeBoxH * 2) - (15*scale);
     
     for (int i = 0; i < 16; ++i) {
         int col = i % numCols;
         int row = i / numCols;
-        shapeBounds[i] = juce::Rectangle<int>(rightX + (col * (shapeBoxW + 6)), shapeY + (row * (shapeBoxH + 6)), shapeBoxW, shapeBoxH);
+        shapeBounds[i] = juce::Rectangle<int>(rightX + (col * (shapeBoxW + (6*scale))), shapeY + (row * (shapeBoxH + (6*scale))), shapeBoxW, shapeBoxH);
     }
 
     // Oscilloscope dynamically scaled relative to the 2-grid
-    scopeBounds = juce::Rectangle<int>(rightX, 60, rightWidth, shapeY - 75);
+    scopeBounds = juce::Rectangle<int>(rightX, 60 * scale, rightWidth, shapeY - (75 * scale));
     
     // Shift Buttons hovering mid-screen over scope
-    shiftLeftBounds = juce::Rectangle<int>(scopeBounds.getX() + 10, scopeBounds.getY() + scopeBounds.getHeight() / 2 - 20, 30, 40);
-    shiftRightBounds = juce::Rectangle<int>(scopeBounds.getRight() - 40, scopeBounds.getY() + scopeBounds.getHeight() / 2 - 20, 30, 40);
+    shiftLeftBounds = juce::Rectangle<int>(scopeBounds.getX() + (10*scale), scopeBounds.getY() + scopeBounds.getHeight() / 2 - (20*scale), 30*scale, 40*scale);
+    shiftRightBounds = juce::Rectangle<int>(scopeBounds.getRight() - (40*scale), scopeBounds.getY() + scopeBounds.getHeight() / 2 - (20*scale), 30*scale, 40*scale);
 }
 
 void OpenKickAudioProcessorEditor::updateCustomCurve()
@@ -386,9 +402,9 @@ void OpenKickAudioProcessorEditor::mouseDown(const juce::MouseEvent& event)
     auto pos = event.getPosition();
     
     // Check Rate clicks
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 6; ++i) {
         if (rateBounds[i].contains(pos)) {
-            audioProcessor.parameters.getParameter("RATE")->setValueNotifyingHost(i / 3.0f);
+            audioProcessor.parameters.getParameter("RATE")->setValueNotifyingHost(i / 5.0f);
             repaint();
             return;
         }
