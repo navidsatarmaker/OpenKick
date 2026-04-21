@@ -2,8 +2,8 @@
 #include "PluginEditor.h"
 
 void OpenKickLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
-                                           float sliderPos, const float rotaryStartAngle,
-                                           const float rotaryEndAngle, juce::Slider& slider)
+                                           float sliderPos, float rotaryStartAngle,
+                                           float rotaryEndAngle, juce::Slider& slider)
 {
     float radius = juce::jmin(width / 2.0f, height / 2.0f) - 10.0f;
     float centreX = x + width * 0.5f;

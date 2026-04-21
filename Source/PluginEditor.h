@@ -7,8 +7,8 @@ class OpenKickLookAndFeel : public juce::LookAndFeel_V4
 {
 public:
     void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
-                          float sliderPos, const float rotaryStartAngle,
-                          const float rotaryEndAngle, juce::Slider& slider) override;
+                          float sliderPos, float rotaryStartAngle,
+                          float rotaryEndAngle, juce::Slider& slider) override;
 };
 
 class OpenKickAudioProcessorEditor  : public juce::AudioProcessorEditor, public juce::Timer
