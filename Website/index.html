@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="OpenKick - The ultra-lightweight, 100% open-source Volume Ducking and Transient Sidechain VST3 Plugin. Flawless sync, zero latency.">
+    <title>OpenKick | Free Sidechain Audio Plugin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav class="glass-nav">
+        <div class="logo">🎛️ OpenKick</div>
+        <div class="nav-links">
+            <a href="#features">Features</a>
+            <a href="#github">Source Code</a>
+            <a href="#download" class="btn-primary-small">Get VST3</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero">
+        <div class="hero-content">
+            <div class="badge">Version 1.0.0 Now Live</div>
+            <h1>Flawless Ducking.<br><span class="highlight-text">Zero Compromise.</span></h1>
+            <p>A hyper-lightweight, free Volume Shaper and Transient Sidechain Utility for modern producers. Takes up only 37MB of RAM per instance.</p>
+            <div class="hero-actions">
+                <a href="#download" class="btn-primary">Download Free VST3</a>
+                <a href="https://github.com/your-username/OpenKick" class="btn-secondary">View on GitHub</a>
+            </div>
+            
+            <div class="specs-grid">
+                <div class="spec-item">💻 Windows / VST3</div>
+                <div class="spec-item">⚡ 0ms Latency</div>
+                <div class="spec-item">🪶 37MB RAM</div>
+            </div>
+        </div>
+        
+        <div class="hero-visual">
+            <div class="plugin-mockup">
+                <!-- CSS Based Animated Representation of the Scope -->
+                <div class="mockup-header">Default : S-Curve</div>
+                <div class="oscilloscope">
+                    <div class="scope-grid"></div>
+                    <div class="ghost-curve"></div>
+                    <div class="main-curve"></div>
+                </div>
+                <div class="mockup-controls">
+                    <div class="knob">MIX</div>
+                    <div class="shapes">16 SHAPES</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="section-title">
+            <h2>Pristine DSP Architecture</h2>
+            <p>Engineered entirely natively in C++ for maximum stability and minimum CPU footprint.</p>
+        </div>
+        
+        <div class="feature-cards">
+            <div class="card">
+                <div class="card-icon">🌊</div>
+                <h3>16 Mathematical Curves</h3>
+                <p>Features meticulously designed geometric ducking models, including S-Curves, Fast Ramps, Sine Pumps, and a fully interactive Custom User vector envelope.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">⏱️</div>
+                <h3>Host & Audio Sync</h3>
+                <p>Lock flawlessly into your DAW’s internal clock (with Triplet timing support!) or route external audio directly into the plugin to trigger the volume via transients.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">👻</div>
+                <h3>Ghost-Visualizer</h3>
+                <p>See exactly what you're doing. The 60FPS dual-oscilloscope renders your main signal accurately while plotting external sidechain transients underneath with a translucent overlay.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download Section -->
+    <section id="download" class="download-section">
+        <div class="download-box glass-card">
+            <h2>Build & Download</h2>
+            <p>OpenKick is distributed under the MIT Open Source License. You can compile it yourself or grab the latest pre-compiled build below.</p>
+            
+            <div class="terminal-block">
+                <div class="terminal-header">
+                    <span class="dot red"></span>
+                    <span class="dot yellow"></span>
+                    <span class="dot green"></span>
+                </div>
+                <code>git clone https://github.com/user/OpenKick.git<br>cmake -B build<br>cmake --build build --config Release</code>
+            </div>
+
+            <a href="https://github.com/your-username/OpenKick/releases" class="btn-primary massive">Go to GitHub Releases 🚀</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p>OpenKick is an independent open-source DSP project.<br>Built freely for the global music production community.</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="script.js"></script>
+</body>
+</html>
