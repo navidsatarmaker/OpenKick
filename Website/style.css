@@ -194,6 +194,10 @@ a { text-decoration: none; color: inherit; }
 .features {
     padding: 100px 10%;
     background: #0d0d0d;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .section-title {
@@ -248,8 +252,10 @@ a { text-decoration: none; color: inherit; }
 /* Download Section */
 .download-section {
     padding: 100px 10%;
+    min-height: 100vh;
     display: flex;
     justify-content: center;
+    align-items: center;
 }
 
 .download-box {

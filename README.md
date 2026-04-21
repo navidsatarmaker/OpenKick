@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>🎛️ OpenKick</h1>
+  <h1>OpenKick</h1>
   <p><strong>A hyper-lightweight, 100% open-source Volume Ducking and Transient Sidechain VST3 utility.</strong></p>
 </div>
 
