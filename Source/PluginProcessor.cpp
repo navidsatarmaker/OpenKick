@@ -200,16 +200,16 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     // Iterate through audio samples
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
     {
+        float scSample = 0.0f;
+        if (getBusCount(true) > 1) {
+            auto scBus = getBusBuffer(buffer, true, 1);
+            for (int ch = 0; ch < scBus.getNumChannels(); ++ch)
+                scSample = juce::jmax(scSample, std::abs(scBus.getReadPointer(ch)[sample]));
+        }
+
         // Handle audio sidechain triggering
         if (triggerMode == 1)
         {
-            float scSample = 0.0f;
-            if (getBusCount(true) > 1) {
-                auto scBus = getBusBuffer(buffer, true, 1);
-                for (int ch = 0; ch < scBus.getNumChannels(); ++ch)
-                    scSample = juce::jmax(scSample, std::abs(scBus.getReadPointer(ch)[sample]));
-            }
-            
             bool wasAboveThreshold = (envelopeFollower > thresholdLinear);
 
             if (scSample > envelopeFollower) envelopeFollower += (scSample - envelopeFollower) * 0.1f;
@@ -240,7 +240,12 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
         if (shiftedPhase < 0.0f) shiftedPhase += 1.0f;
 
         // Calculate curve target based on shape index and shifted phase
-        float targetGain = calculateGainCurve(shiftedPhase, shapeParam); 
+        float targetGain = 1.0f;
+        if (triggerMode == 1 && !isTriggered) {
+            targetGain = 1.0f; // Let audio pass natively while resting
+        } else {
+            targetGain = calculateGainCurve(shiftedPhase, shapeParam); 
+        } 
         
         // Apply mix
         float actualGain = 1.0f - (mixParam * (1.0f - targetGain));
@@ -268,6 +273,11 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
             float currentPeak = scopeData[phaseIdx].load();
             if (absSample > currentPeak) {
                 scopeData[phaseIdx].store(absSample);
+            }
+            
+            float currentSCPeak = sidechainScopeData[phaseIdx].load();
+            if (scSample > currentSCPeak) {
+                sidechainScopeData[phaseIdx].store(scSample);
             }
         }
 

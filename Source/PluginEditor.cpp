@@ -11,6 +11,9 @@ OpenKickAudioProcessorEditor::OpenKickAudioProcessorEditor (OpenKickAudioProcess
 
     mixSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
     mixSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    mixSlider.setColour(juce::Slider::rotarySliderFillColourId, juce::Colour(0xfffcee0a));
+    mixSlider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colour(0xff2a2a2a));
+    mixSlider.setColour(juce::Slider::thumbColourId, juce::Colour(0xfffcee0a));
     addAndMakeVisible(mixSlider);
 
     mixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
@@ -37,11 +40,12 @@ OpenKickAudioProcessorEditor::OpenKickAudioProcessorEditor (OpenKickAudioProcess
 
 void OpenKickAudioProcessorEditor::timerCallback()
 {
-    // Fade the phase-folded scope buffer over time
-    for(int i = 0; i < 512; ++i) {
-        float val = audioProcessor.scopeData[i].load();
-        audioProcessor.scopeData[i].store(val * 0.985f);
+    // Exponential Waveform decay mapped across the DSP trace arrays 
+    for (int i = 0; i < 512; ++i) {
+        audioProcessor.scopeData[i].store(audioProcessor.scopeData[i].load() * 0.85f);
+        audioProcessor.sidechainScopeData[i].store(audioProcessor.sidechainScopeData[i].load() * 0.85f);
     }
+    
     repaint();
 }
 
@@ -132,36 +136,54 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
 
     // Render Audio Waveform (Folded Cycle) Inside Scope
     juce::Path scopePath;
+    juce::Path scPath;
     bool started = false;
+    bool scStarted = false;
     
     for (int p = 0; p < w; ++p)
     {
         float ratio = (float)p / w; 
         int phaseIdx = static_cast<int>(ratio * 511.0f);
         
+        // Main Out
         float sampleVal = audioProcessor.scopeData[phaseIdx].load();
         sampleVal = juce::jlimit(0.0f, 1.0f, sampleVal); // Peak clamp pos
-        
         float yCenter = startY + h / 2.0f;
         float heightOffset = sampleVal * (h / 2.0f); // Make vertically larger
         float x = startX + p;
-        
         if (!started) { scopePath.startNewSubPath(x, yCenter - heightOffset); started = true; }
         else scopePath.lineTo(x, yCenter - heightOffset);
+        
+        // Sidechain Ghost
+        float scVal = audioProcessor.sidechainScopeData[phaseIdx].load();
+        scVal = juce::jlimit(0.0f, 1.0f, scVal); 
+        float scHeight = scVal * (h / 2.0f); 
+        if (!scStarted) { scPath.startNewSubPath(x, yCenter - scHeight); scStarted = true; }
+        else scPath.lineTo(x, yCenter - scHeight);
     }
     
     // Draw mirrored bottom
     for (int p = w - 1; p >= 0; --p) {
         float ratio = (float)p / w; 
         int phaseIdx = static_cast<int>(ratio * 511.0f);
-        float sampleVal = audioProcessor.scopeData[phaseIdx].load();
         
+        float sampleVal = audioProcessor.scopeData[phaseIdx].load();
         sampleVal = juce::jlimit(0.0f, 1.0f, sampleVal);
         float yCenter = startY + h / 2.0f;
         float heightOffset = sampleVal * (h / 2.0f); // Make vertically larger
         scopePath.lineTo(startX + p, yCenter + heightOffset);
+        
+        float scVal = audioProcessor.sidechainScopeData[phaseIdx].load();
+        scVal = juce::jlimit(0.0f, 1.0f, scVal); 
+        float scHeight = scVal * (h / 2.0f); 
+        scPath.lineTo(startX + p, yCenter + scHeight);
     }
     scopePath.closeSubPath();
+    scPath.closeSubPath();
+    
+    // Draw Sidechain Glow
+    g.setColour(yellow.withAlpha(0.15f));
+    g.fillPath(scPath);
     
     g.setColour(juce::Colours::white.withAlpha(0.9f));
     g.fillPath(scopePath);
