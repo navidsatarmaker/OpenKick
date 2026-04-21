@@ -182,7 +182,7 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
     scPath.closeSubPath();
     
     // Draw Sidechain Glow
-    g.setColour(yellow.withAlpha(0.15f));
+    g.setColour(yellow.withAlpha(0.35f));
     g.fillPath(scPath);
     
     g.setColour(juce::Colours::white.withAlpha(0.9f));
