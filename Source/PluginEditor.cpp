@@ -127,8 +127,8 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
     // Interaction text lines
     g.setColour(textGrey);
     g.setFont(juce::Font(12.0f, juce::Font::bold));
-    g.drawText("SMOOTHNESS", 0, getHeight() - 55, getWidth() * 0.35f, 20, juce::Justification::centred);
-    g.drawText("SHIFT OFFSET", 0, getHeight() - 25, getWidth() * 0.35f, 20, juce::Justification::centred);
+    g.drawText("SMOOTHNESS", 0, getHeight() - 95, getWidth() * 0.35f, 20, juce::Justification::centred);
+    g.drawText("SHIFT OFFSET", 0, getHeight() - 55, getWidth() * 0.35f, 20, juce::Justification::centred);
 
     // Right Panel Background
     juce::Rectangle<int> rightPanel(getWidth() * 0.35f, 0, getWidth() * 0.65f, getHeight());
@@ -322,10 +322,10 @@ void OpenKickAudioProcessorEditor::resized()
     mixSlider.setBounds(leftWidth / 2 - 120, getHeight() / 2 - 120, 240, 240);
 
     // Smoothness Slider
-    smoothSlider.setBounds(leftWidth / 2 - 60, getHeight() - 40, 120, 12);
+    smoothSlider.setBounds(leftWidth / 2 - 60, getHeight() - 75, 120, 12);
     
     // Shift Slider
-    shiftSlider.setBounds(leftWidth / 2 - 60, getHeight() - 15, 120, 12);
+    shiftSlider.setBounds(leftWidth / 2 - 60, getHeight() - 35, 120, 12);
 
     // Right Panel Areas
     int rightX = leftWidth + 10;

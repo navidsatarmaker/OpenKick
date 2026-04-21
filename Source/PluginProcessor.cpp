@@ -28,7 +28,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout OpenKickAudioProcessor::crea
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID{"MIX", 1}, "Mix", 0.0f, 1.0f, 1.0f));
     
-    juce::StringArray shapeChoices = { "Hard Duck", "Sine Pump", "Exponential Pluck", "Linear Ramp", "Custom" };
+    juce::StringArray shapeChoices = { "Shape 1", "Shape 2", "Shape 3", "Shape 4", "Shape 5", "Shape 6", "Shape 7", "Shape 8",
+                                       "Shape 9", "Shape 10", "Shape 11", "Shape 12", "Shape 13", "Shape 14", "Shape 15", "Custom" };
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID{"SHAPE", 1}, "Shape", shapeChoices, 0));
         
@@ -189,10 +190,8 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
                 // Map PPQ to a 0.0-1.0 phase adjusted by rate
                 currentPhase = static_cast<float>(std::fmod(ppq * rateMultiplier, 1.0));
             }
-            else if (triggerMode == 0 && !positionInfo.getIsPlaying())
-            {
-                currentPhase = 0.0f; // Not playing
-            }
+            // Do NOT reset currentPhase to 0.0f here when !isPlaying! 
+            // Letting it fall through allows the inter-sample DSP to free-run.
         }
     }
 
