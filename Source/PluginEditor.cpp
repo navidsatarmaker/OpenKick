@@ -63,16 +63,6 @@ OpenKickAudioProcessorEditor::OpenKickAudioProcessorEditor (OpenKickAudioProcess
     smoothAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.parameters, "SMOOTHNESS", smoothSlider);
         
-    shiftSlider.setSliderStyle(juce::Slider::LinearHorizontal);
-    shiftSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-    shiftSlider.setColour(juce::Slider::trackColourId, juce::Colour(0xff2a2a2a));
-    shiftSlider.setColour(juce::Slider::backgroundColourId, juce::Colour(0xff111111));
-    shiftSlider.setColour(juce::Slider::thumbColourId, juce::Colour(0xfffcee0a));
-    addAndMakeVisible(shiftSlider);
-
-    shiftAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-        audioProcessor.parameters, "SHIFT", shiftSlider);
-
     customNodes.push_back({0.0f, 0.0f});
     customNodes.push_back({0.15f, 0.0f});
     customNodes.push_back({0.5f, 1.0f});
@@ -127,8 +117,7 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
     // Interaction text lines
     g.setColour(textGrey);
     g.setFont(juce::Font(12.0f, juce::Font::bold));
-    g.drawText("SMOOTHNESS", 0, getHeight() - 95, getWidth() * 0.35f, 20, juce::Justification::centred);
-    g.drawText("SHIFT OFFSET", 0, getHeight() - 55, getWidth() * 0.35f, 20, juce::Justification::centred);
+    g.drawText("SMOOTHNESS", 0, getHeight() - 55, getWidth() * 0.35f, 20, juce::Justification::centred);
 
     // Right Panel Background
     juce::Rectangle<int> rightPanel(getWidth() * 0.35f, 0, getWidth() * 0.65f, getHeight());
@@ -176,7 +165,7 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
     float w = scopeBounds.getWidth();
     float h = scopeBounds.getHeight();
 
-    // Render Audio Waveform (Folded Cycle) Inside Scope
+    // Render Audio Waveform (Folded Cycle) Inside Scope (White, Thick Body)
     juce::Path scopePath;
     
     bool started = false;
@@ -209,10 +198,16 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
     }
     scopePath.closeSubPath();
     
-    g.setColour(juce::Colour(0xff999999).withAlpha(0.8f));
-    g.strokePath(scopePath, juce::PathStrokeType(2.5f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
-    g.setColour(juce::Colour(0xff666666).withAlpha(0.4f));
+    g.setColour(juce::Colours::white.withAlpha(0.6f));
     g.fillPath(scopePath);
+    g.setColour(juce::Colours::white.withAlpha(0.8f));
+    g.strokePath(scopePath, juce::PathStrokeType(1.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    
+    // Draw Shift Hover Buttons over Scope
+    g.setColour(textGrey);
+    g.setFont(juce::Font(24.0f, juce::Font::bold));
+    g.drawText("<", shiftLeftBounds, juce::Justification::centred);
+    g.drawText(">", shiftRightBounds, juce::Justification::centred);
 
     // Render Math Curve (Thick Yellow)
     juce::Path curvePath;
@@ -257,6 +252,11 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
     }
 
     // Draw Shape Blocks (Bottom of Right Panel, 2x8 Grid)
+    juce::String shapeNames[16] = {
+        "FAST RAMP", "SMOOTH RAMP", "DELAYED RAMP", "BLOCKY RAMP", "S-CURVE", "U-CURVE", "EXP RAMP", "LATE SPIKE",
+        "CUSTOM", "LINEAR PEAK", "LATE LINEAR", "CONVEX RAMP", "DOWN RAMP", "DOUBLE PUMP", "FAST LATE", "DELAY PEAK"
+    };
+    
     for (int i = 0; i < 16; ++i)
     {
         g.setColour(juce::Colour(0xff222222));
@@ -270,13 +270,18 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
             g.drawRoundedRectangle(shapeBounds[i].toFloat(), 4.0f, 1.0f);
         }
 
+        // Draw name inside block
+        g.setColour((i == currentShape) ? juce::Colours::black : textGrey.darker(0.3f));
+        g.setFont(juce::Font(8.0f, juce::Font::bold));
+        g.drawText(shapeNames[i], shapeBounds[i].translated(0, 2), juce::Justification::centredTop);
+
         // Draw miniature curve icon in each block
         g.setColour((i == currentShape) ? juce::Colours::black : textGrey);
         juce::Path iconPath;
         float bX = shapeBounds[i].getX() + 5.0f;
-        float bY = shapeBounds[i].getY() + 5.0f;
+        float bY = shapeBounds[i].getY() + 10.0f;
         float bW = shapeBounds[i].getWidth() - 10.0f;
-        float bH = shapeBounds[i].getHeight() - 10.0f;
+        float bH = shapeBounds[i].getHeight() - 15.0f;
 
         iconPath.startNewSubPath(bX, bY + bH);
         for (int p = 0; p <= 20; ++p)
@@ -292,24 +297,18 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
                 case 5: gain = phase < 0.2f ? 1.0f - (phase*5.0f) : (phase > 0.8f ? (phase-0.8f)*5.0f : 0.0f); break;
                 case 6: gain = phase < 0.8f ? 0.0f : (phase - 0.8f) / 0.2f; break;
                 case 7: gain = phase < 0.6f ? 0.0f : std::pow((phase - 0.6f)/0.4f, 3.0f); break;
-                case 8: gain = phase < 0.1f ? 0.0f : std::min(1.0f, std::pow((phase - 0.1f) * 2.5f, 2.0f)); break;
+                case 8: gain = phase < 0.5f ? 0.0f : 1.0f; break; // Custom shape proxy icon
                 case 9: gain = std::min(1.0f, phase * 3.0f); break;
                 case 10: gain = phase < 0.2f ? 0.0f : ((phase - 0.2f) / 0.8f); break;
                 case 11: gain = std::pow(phase, 0.5f); break;
                 case 12: gain = 1.0f - phase; break;
                 case 13: gain = std::abs(std::sin(phase * juce::MathConstants<float>::pi * 2.0f)); break;
                 case 14: gain = std::pow(phase, 4.0f); break;
-                case 15: gain = phase < 0.5f ? 0.0f : 1.0f; break; // Simplified custom icon
+                case 15: gain = phase < 0.1f ? 0.0f : std::min(1.0f, std::pow((phase - 0.1f) * 2.5f, 2.0f)); break;
             }
             iconPath.lineTo(bX + (phase * bW), bY + (1.0f - gain) * bH);
         }
         g.strokePath(iconPath, juce::PathStrokeType(2.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
-        
-        if (i == 15) {
-            g.setColour(textGrey.darker(0.3f));
-            g.setFont(juce::Font(8.0f, juce::Font::bold));
-            g.drawText("CUSTOM", shapeBounds[i].translated(0, (int)bH + 2), juce::Justification::centred);
-        }
     }
 }
 
@@ -322,10 +321,7 @@ void OpenKickAudioProcessorEditor::resized()
     mixSlider.setBounds(leftWidth / 2 - 120, getHeight() / 2 - 120, 240, 240);
 
     // Smoothness Slider
-    smoothSlider.setBounds(leftWidth / 2 - 60, getHeight() - 75, 120, 12);
-    
-    // Shift Slider
-    shiftSlider.setBounds(leftWidth / 2 - 60, getHeight() - 35, 120, 12);
+    smoothSlider.setBounds(leftWidth / 2 - 60, getHeight() - 35, 120, 12);
 
     // Right Panel Areas
     int rightX = leftWidth + 10;
@@ -356,6 +352,10 @@ void OpenKickAudioProcessorEditor::resized()
 
     // Oscilloscope dynamically scaled relative to the 2-grid
     scopeBounds = juce::Rectangle<int>(rightX, 60, rightWidth, shapeY - 75);
+    
+    // Shift Buttons hovering mid-screen over scope
+    shiftLeftBounds = juce::Rectangle<int>(scopeBounds.getX() + 10, scopeBounds.getY() + scopeBounds.getHeight() / 2 - 20, 30, 40);
+    shiftRightBounds = juce::Rectangle<int>(scopeBounds.getRight() - 40, scopeBounds.getY() + scopeBounds.getHeight() / 2 - 20, 30, 40);
 }
 
 void OpenKickAudioProcessorEditor::updateCustomCurve()
@@ -407,14 +407,27 @@ void OpenKickAudioProcessorEditor::mouseDown(const juce::MouseEvent& event)
     // Check Shape clicks
     for (int i = 0; i < 16; ++i) {
         if (shapeBounds[i].contains(pos)) {
-            audioProcessor.parameters.getParameter("SHAPE")->setValueNotifyingHost(i / 15.0f);
+            auto* param = audioProcessor.parameters.getParameter("SHAPE");
+            param->setValueNotifyingHost(param->convertTo0to1(i));
             repaint();
             return;
         }
     }
+    
+    // Check Shift Nudge Links
+    if (shiftLeftBounds.contains(pos) || shiftRightBounds.contains(pos)) {
+        auto* shiftParam = audioProcessor.parameters.getParameter("SHIFT");
+        float currentShift = shiftParam->convertFrom0to1(shiftParam->getValue()); // Get 0.0 to 1.0 real val
+        currentShift += shiftLeftBounds.contains(pos) ? -0.05f : 0.05f;
+        if (currentShift < 0.0f) currentShift += 1.0f;
+        if (currentShift > 1.0f) currentShift -= 1.0f;
+        shiftParam->setValueNotifyingHost(shiftParam->convertTo0to1(currentShift));
+        repaint();
+        return;
+    }
 
     int currentShape = static_cast<int>(audioProcessor.parameters.getRawParameterValue("SHAPE")->load());
-    if (currentShape != 15) return; // Custom Nodes
+    if (currentShape != 8) return; // Custom Nodes
     
     float w = scopeBounds.getWidth();
     float h = scopeBounds.getHeight();

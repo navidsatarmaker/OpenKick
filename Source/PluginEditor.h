@@ -42,8 +42,8 @@ private:
     juce::Slider smoothSlider;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> smoothAttachment;
 
-    juce::Slider shiftSlider;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> shiftAttachment;
+    juce::Rectangle<int> shiftLeftBounds;
+    juce::Rectangle<int> shiftRightBounds;
 
     juce::Rectangle<int> rateBounds[4];
     juce::Rectangle<int> triggerBounds[2];

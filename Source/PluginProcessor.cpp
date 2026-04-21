@@ -28,10 +28,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout OpenKickAudioProcessor::crea
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID{"MIX", 1}, "Mix", 0.0f, 1.0f, 1.0f));
     
-    juce::StringArray shapeChoices = { "Shape 1", "Shape 2", "Shape 3", "Shape 4", "Shape 5", "Shape 6", "Shape 7", "Shape 8",
-                                       "Shape 9", "Shape 10", "Shape 11", "Shape 12", "Shape 13", "Shape 14", "Shape 15", "Custom" };
-    params.push_back(std::make_unique<juce::AudioParameterChoice>(
-        juce::ParameterID{"SHAPE", 1}, "Shape", shapeChoices, 0));
+    params.push_back(std::make_unique<juce::AudioParameterInt>(
+        juce::ParameterID{"SHAPE", 1}, "Shape", 0, 15, 0));
         
     juce::StringArray rateChoices = { "1/8 Note", "1/4 Note", "1/2 Note", "1/1 Bar" };
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
@@ -292,18 +290,18 @@ float OpenKickAudioProcessor::calculateGainCurve(float phase, int shapeIndex)
         case 5: return phase < 0.2f ? 1.0f - (phase*5.0f) : (phase > 0.8f ? (phase-0.8f)*5.0f : 0.0f); // U-shape
         case 6: return phase < 0.8f ? 0.0f : (phase - 0.8f) / 0.2f; // Late exponential
         case 7: return phase < 0.6f ? 0.0f : std::pow((phase - 0.6f)/0.4f, 3.0f); // Steep spike
-        case 8: return phase < 0.1f ? 0.0f : std::min(1.0f, std::pow((phase - 0.1f) * 2.5f, 2.0f)); // Delay fast peak
+        case 8: // Custom User Shape
+        {
+            int index = juce::jlimit(0, 99, (int)(phase * 100.0f));
+            return customCurveTable[index].load();
+        }
         case 9: return std::min(1.0f, phase * 3.0f); // Linear jump
         case 10: return phase < 0.2f ? 0.0f : ((phase - 0.2f) / 0.8f); // Late linear
         case 11: return std::pow(phase, 0.5f); // Convex curve
         case 12: return 1.0f - phase; // Downward ramp
         case 13: return std::abs(std::sin(phase * juce::MathConstants<float>::pi * 2.0f)); // Double pump
         case 14: return std::pow(phase, 4.0f); // Fast late
-        case 15: // Custom User Shape
-        {
-            int index = juce::jlimit(0, 99, (int)(phase * 100.0f));
-            return customCurveTable[index].load();
-        }
+        case 15: return phase < 0.1f ? 0.0f : std::min(1.0f, std::pow((phase - 0.1f) * 2.5f, 2.0f)); // Delay fast peak
         default:
             return phase;
     }
