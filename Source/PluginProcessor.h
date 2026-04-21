@@ -36,10 +36,7 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState parameters;
-    std::atomic<float> scopeData[2048];
-    std::atomic<int> scopeWriteIdx{0};
-    int scopeAccumulator = 0;
-    float peakAccumulator = 0.0f;
+    std::atomic<float> scopeData[512];
     
     std::atomic<float> customCurveTable[100];
 

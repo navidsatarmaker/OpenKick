@@ -1,50 +1,13 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
-void OpenKickLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
-                                           float sliderPos, float rotaryStartAngle,
-                                           float rotaryEndAngle, juce::Slider& slider)
-{
-    float radius = juce::jmin(width / 2.0f, height / 2.0f) - 10.0f;
-    float centreX = x + width * 0.5f;
-    float centreY = y + height * 0.5f;
-    float angle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
-
-    // Thick track arc (Dark Grey)
-    g.setColour(juce::Colour(0xff2a2a2a));
-    juce::Path trackPath;
-    trackPath.addCentredArc(centreX, centreY, radius, radius, 0.0f, rotaryStartAngle, rotaryEndAngle, true);
-    g.strokePath(trackPath, juce::PathStrokeType(12.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
-
-    // Fill arc (Yellow)
-    g.setColour(juce::Colour(0xfffcee0a));
-    juce::Path fillPath;
-    fillPath.addCentredArc(centreX, centreY, radius, radius, 0.0f, rotaryStartAngle, angle, true);
-    g.strokePath(fillPath, juce::PathStrokeType(12.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
-
-    // Big central dark knob body
-    g.setColour(juce::Colour(0xff222222));
-    g.fillEllipse(centreX - radius + 8.0f, centreY - radius + 8.0f, (radius - 8.0f) * 2.0f, (radius - 8.0f) * 2.0f);
-    
-    // Inner slightly lighter ring
-    g.setColour(juce::Colour(0xff2a2a2a));
-    g.drawEllipse(centreX - radius + 8.0f, centreY - radius + 8.0f, (radius - 8.0f) * 2.0f, (radius - 8.0f) * 2.0f, 4.0f);
-
-    // Huge dot
-    g.setColour(juce::Colour(0xff181818));
-    juce::Path dotPath;
-    dotPath.addEllipse(-8.0f, -radius + 20.0f, 16.0f, 16.0f);
-    g.fillPath(dotPath, juce::AffineTransform::rotation(angle).translated(centreX, centreY));
-}
-
 OpenKickAudioProcessorEditor::OpenKickAudioProcessorEditor (OpenKickAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p)
 {
     setSize (640, 320);
     setResizable (true, true);
-    setResizeLimits (600, 315, 1600, 840);
-    
-    setLookAndFeel(&customLookAndFeel);
+    setResizeLimits (640, 320, 1920, 960);
+    getConstrainer()->setFixedAspectRatio(2.0);
 
     mixSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
     mixSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
@@ -167,20 +130,16 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
     float w = scopeBounds.getWidth();
     float h = scopeBounds.getHeight();
 
-    // Render Audio Waveform (Scrolling Ticker-Tape) Inside Scope
+    // Render Audio Waveform (Folded Cycle) Inside Scope
     juce::Path scopePath;
-    int currentWriteIdx = audioProcessor.scopeWriteIdx.load();
     bool started = false;
     
-    // Draw symmetric top envelope outline from left (oldest) to right (newest)
     for (int p = 0; p < w; ++p)
     {
-        int lookback = w - 1 - p;
-        float ratio = (float)lookback / w; // 0.0 at right, 1.0 at left
-        int readIdx = currentWriteIdx - 1 - static_cast<int>(ratio * 2047.0f);
-        while (readIdx < 0) readIdx += 2048;
+        float ratio = (float)p / w; 
+        int phaseIdx = static_cast<int>(ratio * 511.0f);
         
-        float sampleVal = audioProcessor.scopeData[readIdx].load();
+        float sampleVal = audioProcessor.scopeData[phaseIdx].load();
         sampleVal = juce::jlimit(0.0f, 1.0f, sampleVal); // Peak clamp pos
         
         float yCenter = startY + h / 2.0f;
@@ -191,14 +150,12 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
         else scopePath.lineTo(x, yCenter - heightOffset);
     }
     
-    // Draw mirrored bottom mapping backward points right to left
+    // Draw mirrored bottom
     for (int p = w - 1; p >= 0; --p) {
-        int lookback = w - 1 - p;
-        float ratio = (float)lookback / w; 
-        int readIdx = currentWriteIdx - 1 - static_cast<int>(ratio * 2047.0f);
-        while (readIdx < 0) readIdx += 2048;
+        float ratio = (float)p / w; 
+        int phaseIdx = static_cast<int>(ratio * 511.0f);
+        float sampleVal = audioProcessor.scopeData[phaseIdx].load();
         
-        float sampleVal = audioProcessor.scopeData[readIdx].load();
         sampleVal = juce::jlimit(0.0f, 1.0f, sampleVal);
         float yCenter = startY + h / 2.0f;
         float heightOffset = sampleVal * (h / 2.0f); // Make vertically larger

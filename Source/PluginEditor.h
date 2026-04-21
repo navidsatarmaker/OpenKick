@@ -3,14 +3,6 @@
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
 
-class OpenKickLookAndFeel : public juce::LookAndFeel_V4
-{
-public:
-    void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
-                          float sliderPos, float rotaryStartAngle,
-                          float rotaryEndAngle, juce::Slider& slider) override;
-};
-
 class OpenKickAudioProcessorEditor  : public juce::AudioProcessorEditor, public juce::Timer
 {
 public:
@@ -33,8 +25,6 @@ private:
     juce::Rectangle<int> curveArea;
     std::vector<juce::Point<float>> customNodes;
     int draggedNode = -1;
-
-    OpenKickLookAndFeel customLookAndFeel;
 
     juce::Slider mixSlider;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> mixAttachment;
