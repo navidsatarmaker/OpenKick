@@ -5,6 +5,12 @@
 
 <br>
 
+<div align="center">
+  <img src="Website/screenshot.png" alt="OpenKick GUI Screenshot" width="640">
+</div>
+
+<br>
+
 **OpenKick** gives you perfect sidechaining control with an absolutely pristine visual interface. Whether you need rapid EDM 4-on-the-floor ducking synced perfectly to your DAW, or surgical volume-shaping that reacts directly to external drum hits, OpenKick delivers flawlessly without bloating your project.
 
 ### Why OpenKick?
