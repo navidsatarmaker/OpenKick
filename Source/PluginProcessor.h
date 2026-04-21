@@ -42,11 +42,11 @@ public:
     std::atomic<float> scopeData[512];
     std::atomic<float> customCurveTable[100];
 
+    float calculateGainCurve(float phase, int shapeIndex);
+    
 private:
     float currentPhase = 0.0f;
     float smoothGain = 1.0f;
-
-    float calculateGainCurve(float phase, int shapeIndex);
 
     float envelopeFollower = 0.0f;
     bool isTriggered = false;
