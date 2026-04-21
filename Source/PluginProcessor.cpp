@@ -28,8 +28,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout OpenKickAudioProcessor::crea
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID{"MIX", 1}, "Mix", 0.0f, 1.0f, 1.0f));
     
-    params.push_back(std::make_unique<juce::AudioParameterInt>(
-        juce::ParameterID{"SHAPE", 1}, "Shape", 0, 15, 0));
+    juce::StringArray shapeChoices = { "Fast Ramp", "Smooth Ramp", "Delayed Ramp", "Blocky Ramp", "S-Curve", "U-Curve", "Exp Ramp", "Late Spike",
+                                       "Custom", "Linear Peak", "Late Linear", "Convex Ramp", "Down Ramp", "Double Pump", "Fast Late", "Delay Peak" };
+    params.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID{"SHAPE", 1}, "Shape", shapeChoices, 0));
         
     juce::StringArray rateChoices = { "1/8 Note", "1/4 Note", "1/2 Note", "1/1 Bar" };
     params.push_back(std::make_unique<juce::AudioParameterChoice>(

@@ -198,10 +198,10 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
     }
     scopePath.closeSubPath();
     
-    g.setColour(juce::Colours::white.withAlpha(0.6f));
+    g.setColour(juce::Colours::white.withAlpha(0.9f));
     g.fillPath(scopePath);
-    g.setColour(juce::Colours::white.withAlpha(0.8f));
-    g.strokePath(scopePath, juce::PathStrokeType(1.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    g.setColour(juce::Colours::white);
+    g.strokePath(scopePath, juce::PathStrokeType(0.5f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
     
     // Draw Shift Hover Buttons over Scope
     g.setColour(textGrey);
@@ -209,26 +209,22 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
     g.drawText("<", shiftLeftBounds, juce::Justification::centred);
     g.drawText(">", shiftRightBounds, juce::Justification::centred);
 
-    // Render Math Curve (Thick Yellow)
+    // Render Math Curve (Thick Yellow) mapped dynamically to UI Phase Shift
     juce::Path curvePath;
-    curvePath.startNewSubPath(startX, startY + h);
+    float shiftParam = audioProcessor.parameters.getRawParameterValue("SHIFT")->load();
     for (int i = 0; i <= 100; ++i)
     {
         float phase = i / 100.0f;
-        float gain = phase;
+        float shiftedPhase = std::fmod(phase + shiftParam, 1.0f);
+        if (shiftedPhase < 0.0f) shiftedPhase += 1.0f; // wrap pos
         
-        switch (currentShape)
-        {
-            case 0: gain = phase < 0.15f ? 0.0f : (phase - 0.15f) / 0.85f; break;
-            case 1: gain = 1.0f - std::cos(phase * juce::MathConstants<float>::pi * 0.5f); break;
-            case 2: gain = std::pow(phase, 2.0f); break;
-            case 4: gain = audioProcessor.customCurveTable[i].load(); break;
-            case 3: default: gain = phase; break;
-        }
+        float gain = audioProcessor.calculateGainCurve(shiftedPhase, currentShape);
         
         float cx = startX + (phase * w);
         float cy = startY + (1.0f - gain) * h;
-        curvePath.lineTo(cx, cy);
+        
+        if (i == 0) curvePath.startNewSubPath(cx, cy);
+        else curvePath.lineTo(cx, cy);
     }
     g.setColour(yellow);
     g.strokePath(curvePath, juce::PathStrokeType(5.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
@@ -240,12 +236,15 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
     g.strokePath(bottomEdge, juce::PathStrokeType(2.0f));
 
     // Handle interactive custom nodes
-    if (currentShape == 4)
+    if (currentShape == 8) // Index 8 is the Custom User Shape
     {
         g.setColour(juce::Colours::white);
         for (auto& node : customNodes)
         {
-            float nx = startX + (node.x * w);
+            float visualPhase = std::fmod(node.x - shiftParam, 1.0f);
+            if (visualPhase < 0.0f) visualPhase += 1.0f;
+            
+            float nx = startX + (visualPhase * w);
             float ny = startY + (1.0f - node.y) * h;
             g.fillEllipse(nx - 6.0f, ny - 6.0f, 12.0f, 12.0f);
         }
@@ -407,8 +406,7 @@ void OpenKickAudioProcessorEditor::mouseDown(const juce::MouseEvent& event)
     // Check Shape clicks
     for (int i = 0; i < 16; ++i) {
         if (shapeBounds[i].contains(pos)) {
-            auto* param = audioProcessor.parameters.getParameter("SHAPE");
-            param->setValueNotifyingHost(param->convertTo0to1(i));
+            audioProcessor.parameters.getParameter("SHAPE")->setValueNotifyingHost(i / 15.0f);
             repaint();
             return;
         }
@@ -433,10 +431,14 @@ void OpenKickAudioProcessorEditor::mouseDown(const juce::MouseEvent& event)
     float h = scopeBounds.getHeight();
     float startX = scopeBounds.getX();
     float startY = scopeBounds.getY();
+    float shiftParam = audioProcessor.parameters.getRawParameterValue("SHIFT")->load();
 
     for (size_t i = 0; i < customNodes.size(); ++i)
     {
-        float nx = startX + (customNodes[i].x * w);
+        float visualPhase = std::fmod(customNodes[i].x - shiftParam, 1.0f);
+        if (visualPhase < 0.0f) visualPhase += 1.0f;
+        
+        float nx = startX + (visualPhase * w);
         float ny = startY + (1.0f - customNodes[i].y) * h;
         if (juce::Point<float>(nx, ny).getDistanceFrom(pos.toFloat()) < 15.0f)
         {
@@ -458,6 +460,9 @@ void OpenKickAudioProcessorEditor::mouseDrag(const juce::MouseEvent& event)
 
     float targetX = (pos.x - startX) / w;
     float targetY = 1.0f - ((pos.y - startY) / h);
+    
+    float shiftParam = audioProcessor.parameters.getRawParameterValue("SHIFT")->load();
+    targetX = std::fmod(targetX + shiftParam, 1.0f); // Convert visual backwards to internal logic
 
     targetX = juce::jlimit(0.0f, 1.0f, targetX);
     targetY = juce::jlimit(0.0f, 1.0f, targetY);
