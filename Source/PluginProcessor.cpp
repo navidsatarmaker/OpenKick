@@ -262,8 +262,8 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
         for (int channel = 0; channel < totalNumInputChannels; ++channel)
         {
             auto* channelData = buffer.getWritePointer(channel);
+            if (channel == 0) outSample = channelData[sample]; // Capture CH 0 BEFORE ducking (Pre-FX)
             channelData[sample] *= smoothGain;
-            if (channel == 0) outSample = channelData[sample]; // Capture CH 0 for scope
         }
 
         // Waveform Visualizer - Phase Folded Peak Tracker
