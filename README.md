@@ -58,14 +58,14 @@ OpenKick is built upon the JUCE framework using `FetchContent`. Compiling it fro
 
 ## 🎨 Website & Pre-Compiled Releases
 Want to see OpenKick in action or download the pre-compiled VST3 versions directly? 
-*   **[Visit the OpenKick Website](https://openkick-plugin.netlify.app/)** (Replace with your actual Netlify domain!)
+*   **[Visit the OpenKick Website](https://openkick-plugin.netlify.app/)**
 
 ---
 
 ## 💖 Support the Developer
 OpenKick is built purely as an educational, non-profit resource for the music production community. It relies on the generosity of developers and producers. 
 
-If this plugin saved you $50+ on buying commercial sidechain software, consider supporting the project!
+If this plugin saved you $ on buying commercial sidechain software, consider supporting the project!
 <br>
 **[☕ Buy Me a Coffee](https://buymeacoffee.com/navidsatarmaker)**
 
