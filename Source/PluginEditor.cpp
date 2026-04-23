@@ -42,8 +42,8 @@ void OpenKickAudioProcessorEditor::timerCallback()
 {
     // Exponential Waveform decay mapped across the DSP trace arrays 
     for (int i = 0; i < 512; ++i) {
-        audioProcessor.scopeData[i].store(audioProcessor.scopeData[i].load() * 0.85f);
-        audioProcessor.sidechainScopeData[i].store(audioProcessor.sidechainScopeData[i].load() * 0.85f);
+        audioProcessor.scopeData[i].store(audioProcessor.scopeData[i].load() * 0.99f);
+        audioProcessor.sidechainScopeData[i].store(audioProcessor.sidechainScopeData[i].load() * 0.99f);
     }
     
     repaint();
