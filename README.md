@@ -41,7 +41,7 @@ OpenKick is built upon the JUCE framework using `FetchContent`. Compiling it fro
 ### Compilation Steps:
 1. Clone this repository to your local machine:
    ```bash
-   git clone https://github.com/your-username/OpenKick.git
+   git clone https://github.com/navidsatarmaker/OpenKick.git
    cd OpenKick
    ```
 2. Configure the CMake project. JUCE will automatically fetch down into your environment during this step:
