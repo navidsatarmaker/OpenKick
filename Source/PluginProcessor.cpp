@@ -198,6 +198,24 @@ void OpenKickAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
         }
     }
 
+    bool hasSignal = false;
+    for (int channel = 0; channel < totalNumInputChannels; ++channel) {
+        if (buffer.getMagnitude(channel, 0, buffer.getNumSamples()) > 0.0001f) {
+            hasSignal = true;
+            break;
+        }
+    }
+    if (!hasSignal && getBusCount(true) > 1) {
+        auto scBus = getBusBuffer(buffer, true, 1);
+        for (int channel = 0; channel < scBus.getNumChannels(); ++channel) {
+            if (scBus.getMagnitude(channel, 0, scBus.getNumSamples()) > 0.0001f) {
+                hasSignal = true;
+                break;
+            }
+        }
+    }
+    isAudioActive.store(hasSignal);
+
     // Iterate through audio samples
     for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
     {

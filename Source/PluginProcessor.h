@@ -41,6 +41,7 @@ public:
     
     std::atomic<float> customCurveTable[100];
     std::atomic<bool> isHostPlaying { false };
+    std::atomic<bool> isAudioActive { false };
 
     float calculateGainCurve(float phase, int shapeIndex);
     
