@@ -40,6 +40,7 @@ public:
     std::atomic<float> sidechainScopeData[512];
     
     std::atomic<float> customCurveTable[100];
+    std::atomic<bool> isHostPlaying { false };
 
     float calculateGainCurve(float phase, int shapeIndex);
     

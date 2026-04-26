@@ -41,9 +41,11 @@ OpenKickAudioProcessorEditor::OpenKickAudioProcessorEditor (OpenKickAudioProcess
 void OpenKickAudioProcessorEditor::timerCallback()
 {
     // Exponential Waveform decay mapped across the DSP trace arrays 
-    for (int i = 0; i < 512; ++i) {
-        audioProcessor.scopeData[i].store(audioProcessor.scopeData[i].load() * 0.99f);
-        audioProcessor.sidechainScopeData[i].store(audioProcessor.sidechainScopeData[i].load() * 0.99f);
+    if (audioProcessor.isHostPlaying.load()) {
+        for (int i = 0; i < 512; ++i) {
+            audioProcessor.scopeData[i].store(audioProcessor.scopeData[i].load() * 0.95f);
+            audioProcessor.sidechainScopeData[i].store(audioProcessor.sidechainScopeData[i].load() * 0.95f);
+        }
     }
     
     repaint();
@@ -146,7 +148,7 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
         int phaseIdx = static_cast<int>(ratio * 511.0f);
         
         // Main Out
-        float sampleVal = audioProcessor.scopeData[phaseIdx].load() * 8.0f;
+        float sampleVal = audioProcessor.scopeData[phaseIdx].load() * 5.0f;
         sampleVal = juce::jlimit(0.0f, 1.0f, sampleVal); // Peak clamp pos
         float yCenter = startY + h / 2.0f;
         float heightOffset = sampleVal * (h / 2.0f); // Make vertically larger
@@ -155,7 +157,7 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
         else scopePath.lineTo(x, yCenter - heightOffset);
         
         // Sidechain Ghost
-        float scVal = audioProcessor.sidechainScopeData[phaseIdx].load() * 8.0f;
+        float scVal = audioProcessor.sidechainScopeData[phaseIdx].load() * 5.0f;
         scVal = juce::jlimit(0.0f, 1.0f, scVal); 
         float scHeight = scVal * (h / 2.0f); 
         if (!scStarted) { scPath.startNewSubPath(x, yCenter - scHeight); scStarted = true; }
@@ -167,13 +169,13 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
         float ratio = (float)p / w; 
         int phaseIdx = static_cast<int>(ratio * 511.0f);
         
-        float sampleVal = audioProcessor.scopeData[phaseIdx].load() * 8.0f;
+        float sampleVal = audioProcessor.scopeData[phaseIdx].load() * 5.0f;
         sampleVal = juce::jlimit(0.0f, 1.0f, sampleVal);
         float yCenter = startY + h / 2.0f;
         float heightOffset = sampleVal * (h / 2.0f); // Make vertically larger
         scopePath.lineTo(startX + p, yCenter + heightOffset);
         
-        float scVal = audioProcessor.sidechainScopeData[phaseIdx].load() * 8.0f;
+        float scVal = audioProcessor.sidechainScopeData[phaseIdx].load() * 5.0f;
         scVal = juce::jlimit(0.0f, 1.0f, scVal); 
         float scHeight = scVal * (h / 2.0f); 
         scPath.lineTo(startX + p, yCenter + scHeight);
@@ -185,7 +187,7 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
     g.setColour(yellow.withAlpha(0.35f));
     g.fillPath(scPath);
     
-    g.setColour(juce::Colours::white.withAlpha(0.9f));
+    g.setColour(juce::Colours::white.withAlpha(0.45f));
     g.fillPath(scopePath);
     g.setColour(juce::Colours::white);
     g.strokePath(scopePath, juce::PathStrokeType(1.0f * scale, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
