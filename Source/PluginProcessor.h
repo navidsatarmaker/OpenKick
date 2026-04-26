@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <array>
 
 class OpenKickAudioProcessor  : public juce::AudioProcessor
 {
@@ -40,6 +41,8 @@ public:
     std::atomic<float> sidechainScopeData[512];
     
     std::atomic<float> customCurveTable[100];
+    std::array<juce::Point<float>, 5> customNodes;
+    void updateCustomCurve();
     std::atomic<bool> isHostPlaying { false };
     std::atomic<bool> isAudioActive { false };
 

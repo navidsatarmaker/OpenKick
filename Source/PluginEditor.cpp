@@ -29,11 +29,7 @@ OpenKickAudioProcessorEditor::OpenKickAudioProcessorEditor (OpenKickAudioProcess
     smoothAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.parameters, "SMOOTHNESS", smoothSlider);
         
-    customNodes.push_back({0.0f, 0.0f});
-    customNodes.push_back({0.15f, 0.0f});
-    customNodes.push_back({0.5f, 1.0f});
-    customNodes.push_back({1.0f, 1.0f});
-    updateCustomCurve();
+    audioProcessor.updateCustomCurve();
 
     startTimerHz(60);
 }
@@ -236,7 +232,7 @@ void OpenKickAudioProcessorEditor::paint (juce::Graphics& g)
     if (currentShape == 8) // Index 8 is the Custom User Shape
     {
         g.setColour(juce::Colours::white);
-        for (auto& node : customNodes)
+        for (auto& node : audioProcessor.customNodes)
         {
             float visualPhase = std::fmod(node.x - shiftParam, 1.0f);
             if (visualPhase < 0.0f) visualPhase += 1.0f;
@@ -371,29 +367,7 @@ void OpenKickAudioProcessorEditor::resized()
     shiftRightBounds = juce::Rectangle<int>(scopeBounds.getRight() - (40*scale), scopeBounds.getY() + scopeBounds.getHeight() / 2 - (20*scale), 30*scale, 40*scale);
 }
 
-void OpenKickAudioProcessorEditor::updateCustomCurve()
-{
-    for (int i = 0; i < 100; ++i)
-    {
-        float x = i / 99.0f;
-        float y = 0.0f;
-        for (size_t n = 0; n < customNodes.size() - 1; ++n)
-        {
-            if (x >= customNodes[n].x && x <= customNodes[n+1].x)
-            {
-                float rangeX = customNodes[n+1].x - customNodes[n].x;
-                if (rangeX > 0.0f) {
-                    float t = (x - customNodes[n].x) / rangeX;
-                    y = customNodes[n].y + t * (customNodes[n+1].y - customNodes[n].y);
-                } else {
-                    y = customNodes[n].y;
-                }
-                break;
-            }
-        }
-        audioProcessor.customCurveTable[i].store(y);
-    }
-}
+
 
 void OpenKickAudioProcessorEditor::mouseDown(const juce::MouseEvent& event)
 {
@@ -447,13 +421,13 @@ void OpenKickAudioProcessorEditor::mouseDown(const juce::MouseEvent& event)
     float startY = scopeBounds.getY();
     float shiftParam = audioProcessor.parameters.getRawParameterValue("SHIFT")->load();
 
-    for (size_t i = 0; i < customNodes.size(); ++i)
+    for (size_t i = 0; i < audioProcessor.customNodes.size(); ++i)
     {
-        float visualPhase = std::fmod(customNodes[i].x - shiftParam, 1.0f);
+        float visualPhase = std::fmod(audioProcessor.customNodes[i].x - shiftParam, 1.0f);
         if (visualPhase < 0.0f) visualPhase += 1.0f;
         
         float nx = startX + (visualPhase * w);
-        float ny = startY + (1.0f - customNodes[i].y) * h;
+        float ny = startY + (1.0f - audioProcessor.customNodes[i].y) * h;
         if (juce::Point<float>(nx, ny).getDistanceFrom(pos.toFloat()) < 15.0f)
         {
             draggedNode = i;
@@ -482,15 +456,15 @@ void OpenKickAudioProcessorEditor::mouseDrag(const juce::MouseEvent& event)
     targetY = juce::jlimit(0.0f, 1.0f, targetY);
 
     if (draggedNode == 0) targetX = 0.0f;
-    else if (draggedNode == customNodes.size() - 1) targetX = 1.0f;
+    else if (draggedNode == audioProcessor.customNodes.size() - 1) targetX = 1.0f;
     else {
-        targetX = juce::jlimit(customNodes[draggedNode - 1].x + 0.01f, customNodes[draggedNode + 1].x - 0.01f, targetX);
+        targetX = juce::jlimit(audioProcessor.customNodes[draggedNode - 1].x + 0.01f, audioProcessor.customNodes[draggedNode + 1].x - 0.01f, targetX);
     }
 
-    customNodes[draggedNode].x = targetX;
-    customNodes[draggedNode].y = targetY;
+    audioProcessor.customNodes[draggedNode].x = targetX;
+    audioProcessor.customNodes[draggedNode].y = targetY;
 
-    updateCustomCurve();
+    audioProcessor.updateCustomCurve();
     repaint();
 }
 

@@ -15,6 +15,11 @@ OpenKickAudioProcessor::OpenKickAudioProcessor()
 #endif
     parameters(*this, nullptr, "Parameters", createParameterLayout())
 {
+    customNodes[0] = {0.0f, 0.0f};
+    customNodes[1] = {0.15f, 0.0f};
+    customNodes[2] = {0.5f, 1.0f};
+    customNodes[3] = {0.75f, 1.0f};
+    customNodes[4] = {1.0f, 1.0f};
 }
 
 OpenKickAudioProcessor::~OpenKickAudioProcessor()
@@ -119,8 +124,32 @@ void OpenKickAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlo
     smoothGain = 1.0f;
     for (int i = 0; i < 512; ++i) scopeData[i].store(0.0f);
     
-    // Default custom curve to a linear ramp
-    for (int i = 0; i < 100; ++i) customCurveTable[i] = i / 99.0f;
+    // Default custom curve 
+    updateCustomCurve();
+}
+
+void OpenKickAudioProcessor::updateCustomCurve()
+{
+    for (int i = 0; i < 100; ++i)
+    {
+        float x = i / 99.0f;
+        float y = 0.0f;
+        for (size_t n = 0; n < customNodes.size() - 1; ++n)
+        {
+            if (x >= customNodes[n].x && x <= customNodes[n+1].x)
+            {
+                float rangeX = customNodes[n+1].x - customNodes[n].x;
+                if (rangeX > 0.0f) {
+                    float t = (x - customNodes[n].x) / rangeX;
+                    y = customNodes[n].y + t * (customNodes[n+1].y - customNodes[n].y);
+                } else {
+                    y = customNodes[n].y;
+                }
+                break;
+            }
+        }
+        customCurveTable[i].store(y);
+    }
 }
 
 void OpenKickAudioProcessor::releaseResources()
@@ -353,6 +382,16 @@ juce::AudioProcessorEditor* OpenKickAudioProcessor::createEditor()
 void OpenKickAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     auto state = parameters.copyState();
+    
+    juce::ValueTree nodesTree ("CUSTOM_NODES");
+    for (size_t i = 0; i < customNodes.size(); ++i) {
+        juce::ValueTree nodeTree ("NODE");
+        nodeTree.setProperty ("x", customNodes[i].x, nullptr);
+        nodeTree.setProperty ("y", customNodes[i].y, nullptr);
+        nodesTree.appendChild (nodeTree, nullptr);
+    }
+    state.appendChild (nodesTree, nullptr);
+
     std::unique_ptr<juce::XmlElement> xml (state.createXml());
     copyXmlToBinary (*xml, destData);
 }
@@ -360,9 +399,25 @@ void OpenKickAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 void OpenKickAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     std::unique_ptr<juce::XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
-    if (xmlState.get() != nullptr)
-        if (xmlState->hasTagName (parameters.state.getType()))
-            parameters.replaceState (juce::ValueTree::fromXml (*xmlState));
+    if (xmlState.get() != nullptr) {
+        if (xmlState->hasTagName (parameters.state.getType())) {
+            juce::ValueTree newTree = juce::ValueTree::fromXml (*xmlState);
+            parameters.replaceState (newTree);
+            
+            auto nodesTree = newTree.getChildWithName ("CUSTOM_NODES");
+            if (nodesTree.isValid()) {
+                int i = 0;
+                for (auto nodeTree : nodesTree) {
+                    if (nodeTree.hasType ("NODE") && i < 5) {
+                        customNodes[i].x = nodeTree.getProperty ("x", customNodes[i].x);
+                        customNodes[i].y = nodeTree.getProperty ("y", customNodes[i].y);
+                        i++;
+                    }
+                }
+            }
+            updateCustomCurve();
+        }
+    }
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()

@@ -17,13 +17,12 @@ public:
     void mouseDrag(const juce::MouseEvent& event) override;
     void mouseUp(const juce::MouseEvent& event) override;
     
-    void updateCustomCurve();
 
 private:
     OpenKickAudioProcessor& audioProcessor;
 
     juce::Rectangle<int> curveArea;
-    std::vector<juce::Point<float>> customNodes;
+
     int draggedNode = -1;
 
     juce::Slider mixSlider;
